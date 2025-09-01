@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - DataLab{% endblock %}
+
+{% block content %}
+<div class="row vh-100">
+    <div class="col-md-6 d-none d-md-flex bg-primary p-0 position-relative">
+        <div class="position-absolute top-0 start-0 p-4">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" height="60">
+        </div>
+        <div class="login-banner d-flex flex-column justify-content-center align-items-center text-white w-100 p-5">
+            <h1 class="display-4 fw-bold mb-4">DataLab</h1>
+            <h2 class="h3 mb-5">Web-based AI-Driven Data Preprocessing</h2>
+            <p class="lead">Join us and transform your data preparation workflow</p>
+        </div>
+    </div>
+    <div class="col-md-6 d-flex align-items-center justify-content-center">
+        <div class="login-form-container p-4 p-md-5 rounded">
+            <div class="text-center mb-4">
+                <h2 class="h3 mb-3 fw-normal">Create Your Account</h2>
+                <p class="text-muted">Fill in the form to get started</p>
+            </div>
+
+            <div id="errorAlert" class="alert d-none" role="alert"></div>
+
+            <form id="signupForm">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" placeholder="Username" required minlength="4" maxlength="50">
+                    <label for="username">Username</label>
+                    <div class="invalid-feedback">Username must be 4-50 characters long</div>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="email" class="form-control" id="email" placeholder="name@example.com" required
+                           pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$"
+                           title="Please enter a valid email address (e.g., user@gmail.com)"
+                           autocomplete="email">
+                    <label for="email">Email address</label>
+                    <div class="invalid-feedback" id="emailError">Please enter a valid email address (e.g., user@gmail.com)</div>
+                    <div class="valid-feedback">Email format is correct!</div>
+                </div>
+                <div class="form-floating mb-4">
+                    <input type="password" class="form-control" id="password" placeholder="Password" required
+                           minlength="8"
+                           pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+                           title="Password must contain at least 8 characters with uppercase, lowercase, number, and special character">
+                    <label for="password">Password</label>
+                    <div class="invalid-feedback">Password must have: at least 8 characters, uppercase letter, lowercase letter, number, and special character</div>
+                    <div class="valid-feedback">Strong password!</div>
+                </div>
+
+                <button class="w-100 btn btn-lg btn-primary mb-3" type="submit">Sign up</button>
+
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{{ url_for('login') }}" class="link-primary">Sign in</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/email-validation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signup.js') }}"></script>
+{% endblock %}

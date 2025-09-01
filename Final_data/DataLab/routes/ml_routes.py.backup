@@ -1,0 +1,216 @@
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
+from functools import wraps
+import pandas as pd
+import numpy as np
+import os
+
+# Import the MLRecommender from the existing app.py
+try:
+    from .app import MLRecommender
+    from .config import Config
+except ImportError:
+    # Fallback for direct execution
+    from app import MLRecommender
+    from config import Config
+
+# Create ML blueprint for DataLab integration
+ml_bp = Blueprint('ml', __name__, url_prefix='/ml')
+
+# DataLab integration functions
+datasets = None
+
+def set_datasets_reference(datasets_ref):
+    global datasets
+    datasets = datasets_ref
+
+def get_user_datasets():
+    user_id = session.get('user_id')
+    if not user_id or not datasets:
+        return []
+    return datasets.get(user_id, [])
+
+def get_dataset_by_id(dataset_id):
+    user_datasets = get_user_datasets()
+    return next((ds for ds in user_datasets if ds['id'] == dataset_id), None)
+
+# Simple login check (using DataLab's session)
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# API login required (returns JSON for API calls)
+def api_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Initialize ML Recommender
+config = Config()
+recommender = MLRecommender(openai_api_key=config.OPENAI_API_KEY)
+
+@ml_bp.route('/<int:dataset_id>')
+@login_required
+def index(dataset_id):
+    dataset = get_dataset_by_id(dataset_id)
+    if not dataset:
+        return render_template('404.html'), 404
+    return render_template('ml_selection.html', dataset=dataset)
+
+@ml_bp.route('/api/analyze/<int:dataset_id>', methods=['POST'])
+@api_login_required
+def analyze(dataset_id):
+    try:
+        dataset = get_dataset_by_id(dataset_id)
+        if not dataset:
+            return jsonify({'error': 'Dataset not found'}), 404
+        
+        # Load the dataset file
+        if not os.path.exists(dataset['file_path']):
+            return jsonify({'error': 'Dataset file not found'}), 404
+        
+        df = pd.read_csv(dataset['file_path'])
+        
+        # Analyze dataset
+        analysis = recommender.analyze_dataset(df)
+        
+        # Preprocess data
+        X, y, scaler = recommender.preprocess_data(df.copy(), analysis)
+        
+        # Evaluate models
+        results = recommender.evaluate_models(X, y, analysis['task_type'])
+        
+        # Calculate suitability scores and get GPT analysis
+        recommendations = []
+        for model_name, performance in results.items():
+            if 'error' not in performance:
+                suitability_score, justification = recommender.calculate_suitability_score(
+                    model_name, analysis, performance
+                )
+                
+                # Get GPT analysis
+                gpt_analysis = recommender.get_gpt_analysis(model_name, analysis, performance)
+                
+                recommendations.append({
+                    'model': model_name,
+                    'performance': performance,
+                    'suitability_score': float(suitability_score),
+                    'justification': justification,
+                    'gpt_analysis': gpt_analysis,
+                    'can_tune': model_name in recommender.hyperparameter_grids
+                })
+        
+        # Sort by suitability score
+        recommendations.sort(key=lambda x: x['suitability_score'], reverse=True)
+        
+        # Add best model details
+        best_model = recommendations[0] if recommendations else None
+        
+        return jsonify({
+            'dataset_analysis': analysis,
+            'recommendations': recommendations,
+            'best_model': {
+                'name': best_model['model'],
+                'score': best_model['suitability_score'],
+                'performance': best_model['performance'],
+                'why_best': f"Achieved highest suitability score of {best_model['suitability_score']:.1f}% with {best_model['performance']['mean_score']:.3f} CV score and {best_model['performance']['training_time']:.2f}s training time."
+            } if best_model else None
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@ml_bp.route('/api/tune/<int:dataset_id>', methods=['POST'])
+@api_login_required
+def tune_hyperparameters(dataset_id):
+    try:
+        data = request.get_json()
+        model_name = data['model_name']
+        
+        dataset = get_dataset_by_id(dataset_id)
+        if not dataset:
+            return jsonify({'error': 'Dataset not found'}), 404
+        
+        df = pd.read_csv(dataset['file_path'])
+        analysis = recommender.analyze_dataset(df)
+        X, y, scaler = recommender.preprocess_data(df.copy(), analysis)
+        
+        # Perform hyperparameter tuning
+        tuning_results = recommender.tune_hyperparameters(model_name, X, y, analysis['task_type'])
+        
+        if 'error' in tuning_results:
+            return jsonify({'error': tuning_results['error']}), 400
+        
+        # Re-evaluate model with optimized parameters
+        updated_performance = recommender.evaluate_tuned_model(model_name, X, y, analysis['task_type'], tuning_results['best_params'])
+        
+        return jsonify({
+            'message': 'Hyperparameter tuning completed',
+            'model_name': model_name,
+            'tuning_results': tuning_results,
+            'updated_performance': updated_performance
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@ml_bp.route('/api/export-notebook/<int:dataset_id>', methods=['POST'])
+@api_login_required
+def export_notebook(dataset_id):
+    try:
+        data = request.get_json()
+        model_name = data['model_name']
+        model_params = data.get('model_params', {})
+        dataset_info = data.get('dataset_info', {})
+        
+        # Generate notebook content
+        notebook_content = recommender.generate_notebook(model_name, model_params, dataset_info)
+        
+        return jsonify({
+            'notebook_content': notebook_content,
+            'filename': f'{model_name.lower().replace(" ", "_")}_model.ipynb'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@ml_bp.route('/jupyterlite')
+@login_required
+def jupyterlite():
+    return render_template('jupyterlite.html')
+
+@ml_bp.route('/create-notebook', methods=['POST'])
+@api_login_required
+def create_notebook():
+    """Create a new notebook in the Jupyter environment"""
+    try:
+        data = request.get_json()
+        model_name = data.get('model_name', 'DataLab_Model')
+        model_code = data.get('model_code', '')
+        
+        # Import Jupyter server functionality
+        try:
+            from datalab_jupyter import get_jupyter_manager
+            manager = get_jupyter_manager()
+            
+            if manager.is_running():
+                notebook_path = manager.create_sample_notebook(model_name, model_code)
+                return jsonify({
+                    'success': True,
+                    'notebook_path': notebook_path,
+                    'jupyter_url': manager.get_embed_url()
+                })
+            else:
+                return jsonify({'error': 'Jupyter server not running'}), 503
+                
+        except ImportError:
+            return jsonify({'error': 'Jupyter server not available'}), 503
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400

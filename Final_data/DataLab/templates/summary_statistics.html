@@ -1,0 +1,874 @@
+{% extends "base.html" %}
+
+{% block title %}Summary Statistics - {{ dataset.name }} - DataLab{% endblock %}
+
+{% block head %}
+<!-- Additional CSS for summary statistics page -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/datalab-styles.css') }}">
+<style>
+  .stats-options {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+  .advanced-stats-section {
+    margin-top: 25px;
+    border-top: 1px solid #e9ecef;
+    padding-top: 20px;
+  }
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .stats-table th, .stats-table td {
+    padding: 8px;
+    border: 1px solid #dee2e6;
+  }
+  .stats-table thead {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  .distribution-visualization {
+    height: 120px;
+    position: relative;
+    margin: 20px 0;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+  }
+  .download-btn {
+    margin-top: 10px;
+  }
+  .form-check-input:checked {
+    background-color: var(--primary-600);
+    border-color: var(--primary-600);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar py-3 min-vh-100">
+      <div class="d-flex justify-content-center mb-4">
+        <h4 class="text-primary">DataLab</h4>
+      </div>
+      <div class="nav flex-column">
+        <div class="nav-item py-2 px-3">
+          <a href="{{ url_for('dashboard') }}" class="text-decoration-none text-dark d-flex align-items-center">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            <span>Dashboard</span>
+          </a>
+        </div>
+        <div class="nav-item py-2 px-3">
+          <a href="{{ url_for('data_preview', dataset_id=dataset.id) }}" class="text-decoration-none text-dark d-flex align-items-center">
+            <i class="fas fa-eye me-2"></i>
+            <span>Data Preview</span>
+          </a>
+        </div>
+        <div class="nav-item py-2 px-3">
+          <a href="{{ url_for('data_quality', dataset_id=dataset.id) }}" class="text-decoration-none text-dark d-flex align-items-center">
+            <i class="fas fa-check-circle me-2"></i>
+            <span>Data Quality</span>
+          </a>
+        </div>
+        <div class="nav-item py-2 px-3">
+          <span class="d-flex align-items-center fw-bold active">
+            <i class="fas fa-chart-pie me-2"></i>
+            <span>Statistics</span>
+          </span>
+        </div>
+        <div class="nav-item mt-auto py-2 px-3">
+          <a href="{{ url_for('logout') }}" class="text-decoration-none text-dark d-flex align-items-center logout-btn">
+            <i class="fas fa-sign-out-alt me-2"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 px-md-4 py-4">
+      <!-- Breadcrumb and actions -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Summary Statistics</li>
+          </ol>
+        </nav>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+      </div>
+
+      <!-- Dataset information -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            {% if dataset.file_type == 'csv' %}
+              <i class="fas fa-file-csv me-2"></i>
+            {% elif dataset.file_type == 'json' %}
+              <i class="fas fa-file-code me-2"></i>
+            {% elif dataset.file_type in ['xlsx', 'xls'] %}
+              <i class="fas fa-file-excel me-2"></i>
+            {% else %}
+              <i class="fas fa-file-alt me-2"></i>
+            {% endif %}
+            {{ dataset.name }} - Summary Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <h6 class="mb-1"><i class="fas fa-info-circle me-2"></i>About Summary Statistics</h6>
+            <p class="mb-0">
+              This page shows statistical measures for the numerical columns in your dataset. You can customize which statistics to view using the options panel below.
+            </p>
+          </div>
+
+          <!-- Statistics Options Panel -->
+          <div class="stats-options" id="statsOptions">
+            <h6><i class="fas fa-sliders-h me-2"></i>Customize Statistics</h6>
+            <p class="text-muted small">Select which statistics you want to view for your dataset:</p>
+
+            <form id="statsForm">
+              <div class="row">
+                <!-- Basic Statistics -->
+                <div class="col-md-4">
+                  <h6 class="text-muted small mb-2">Basic Statistics</h6>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="mean" name="stats" value="mean" checked>
+                    <label class="form-check-label" for="mean">Mean</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="median" name="stats" value="median" checked>
+                    <label class="form-check-label" for="median">Median</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="mode" name="stats" value="mode">
+                    <label class="form-check-label" for="mode">Mode</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="std" name="stats" value="std" checked>
+                    <label class="form-check-label" for="std">Standard Deviation</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="var" name="stats" value="var">
+                    <label class="form-check-label" for="var">Variance</label>
+                  </div>
+                </div>
+
+                <!-- Distribution Statistics -->
+                <div class="col-md-4">
+                  <h6 class="text-muted small mb-2">Distribution Statistics</h6>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="min" name="stats" value="min" checked>
+                    <label class="form-check-label" for="min">Minimum</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="max" name="stats" value="max" checked>
+                    <label class="form-check-label" for="max">Maximum</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="range" name="stats" value="range" checked>
+                    <label class="form-check-label" for="range">Range</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="quartiles" name="stats" value="quartiles" checked>
+                    <label class="form-check-label" for="quartiles">Quartiles (25%, 50%, 75%)</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="iqr" name="stats" value="iqr">
+                    <label class="form-check-label" for="iqr">Interquartile Range (IQR)</label>
+                  </div>
+                </div>
+
+                <!-- Advanced Statistics -->
+                <div class="col-md-4">
+                  <h6 class="text-muted small mb-2">Advanced Statistics</h6>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="skew" name="stats" value="skew">
+                    <label class="form-check-label" for="skew">Skewness</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="kurtosis" name="stats" value="kurtosis">
+                    <label class="form-check-label" for="kurtosis">Kurtosis</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="sem" name="stats" value="sem">
+                    <label class="form-check-label" for="sem">Standard Error of Mean</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="cv" name="stats" value="cv">
+                    <label class="form-check-label" for="cv">Coefficient of Variation</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="sum" name="stats" value="sum">
+                    <label class="form-check-label" for="sum">Sum</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <button type="button" id="updateStatsBtn" class="btn btn-primary btn-sm">
+                  <i class="fas fa-sync-alt me-1"></i> Update Statistics
+                </button>
+                <button type="button" id="selectAllBtn" class="btn btn-outline-secondary btn-sm ms-2">
+                  <i class="fas fa-check-square me-1"></i> Select All
+                </button>
+                <button type="button" id="selectBasicBtn" class="btn btn-outline-secondary btn-sm ms-2">
+                  <i class="fas fa-check me-1"></i> Basic Stats Only
+                </button>
+              </div>
+            </form>
+
+            <div class="text-end mt-3">
+              <button type="button" id="exportStatsBtn" class="btn btn-success btn-sm">
+                <i class="fas fa-download me-1"></i> Export Statistics (CSV)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary statistics -->
+      {% if summary and summary|length > 0 %}
+        <div class="row">
+          {% for column, stats in summary.items() %}
+            <div class="col-md-6 col-lg-4 mb-4">
+              <div class="card stats-card">
+                <div class="card-header">
+                  <h5 class="mb-0 text-truncate text-primary" title="{{ column }}">
+                    <i class="fas fa-chart-line me-2"></i>{{ column }}
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <!-- Central tendency -->
+                  <div class="stat-box">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="mb-0">Central Tendency</h6>
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-6">
+                        <div class="text-muted small">Mean</div>
+                        <div class="fw-bold">{{ stats.mean }}</div>
+                      </div>
+                      <div class="col-6">
+                        <div class="text-muted small">Median (50%)</div>
+                        <div class="fw-bold">{{ stats['50%'] }}</div>
+                      </div>
+                      <!-- Mode will be shown here when enabled -->
+                      <div class="col-6 mode-stat" style="display: none;">
+                        <div class="text-muted small">Mode</div>
+                        <div class="fw-bold">{{ stats.get('mode', 'N/A') }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Dispersion -->
+                  <div class="stat-box">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="mb-0">Dispersion</h6>
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-6">
+                        <div class="text-muted small">Standard Deviation</div>
+                        <div class="fw-bold">{{ stats.std }}</div>
+                      </div>
+                      <div class="col-6">
+                        <div class="text-muted small">Range</div>
+                        <div class="fw-bold">{{ stats.max - stats.min }}</div>
+                      </div>
+                      <!-- Variance will be shown when enabled -->
+                      <div class="col-6 var-stat" style="display: none;">
+                        <div class="text-muted small">Variance</div>
+                        <div class="fw-bold">{{ stats.get('var', stats.std ** 2)|round(2) }}</div>
+                      </div>
+                      <!-- IQR will be shown when enabled -->
+                      <div class="col-6 iqr-stat" style="display: none;">
+                        <div class="text-muted small">IQR</div>
+                        <div class="fw-bold">{{ (stats['75%'] - stats['25%'])|round(2) }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Five-number summary -->
+                  <div class="stat-box five-number-stat">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="mb-0">Five-Number Summary</h6>
+                    </div>
+
+                    <!-- Visualization of five-number summary -->
+                    <div class="position-relative mb-3">
+                      <div class="distribution-bar">
+                        <div class="distribution-indicator" style="width: 100%;"></div>
+                      </div>
+                      <div class="d-flex justify-content-between mt-1 small text-muted">
+                        <div>Min</div>
+                        <div>Q1</div>
+                        <div>Median</div>
+                        <div>Q3</div>
+                        <div>Max</div>
+                      </div>
+                    </div>
+
+                    <div class="row g-2">
+                      <div class="col">
+                        <div class="text-muted small">Minimum</div>
+                        <div class="fw-bold">{{ stats.min }}</div>
+                      </div>
+                      <div class="col">
+                        <div class="text-muted small">25%</div>
+                        <div class="fw-bold">{{ stats['25%'] }}</div>
+                      </div>
+                      <div class="col">
+                        <div class="text-muted small">50%</div>
+                        <div class="fw-bold">{{ stats['50%'] }}</div>
+                      </div>
+                      <div class="col">
+                        <div class="text-muted small">75%</div>
+                        <div class="fw-bold">{{ stats['75%'] }}</div>
+                      </div>
+                      <div class="col">
+                        <div class="text-muted small">Maximum</div>
+                        <div class="fw-bold">{{ stats.max }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Advanced Statistics (hidden by default) -->
+                  <div class="stat-box advanced-stats-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="mb-0">Advanced Statistics</h6>
+                    </div>
+                    <div class="row g-3">
+                      <!-- Skewness will be shown when enabled -->
+                      <div class="col-6 skew-stat" style="display: none;">
+                        <div class="text-muted small">Skewness</div>
+                        <div class="fw-bold">{{ stats.get('skew', 'N/A') }}</div>
+                      </div>
+                      <!-- Kurtosis will be shown when enabled -->
+                      <div class="col-6 kurtosis-stat" style="display: none;">
+                        <div class="text-muted small">Kurtosis</div>
+                        <div class="fw-bold">{{ stats.get('kurtosis', 'N/A') }}</div>
+                      </div>
+                      <!-- SEM will be shown when enabled -->
+                      <div class="col-6 sem-stat" style="display: none;">
+                        <div class="text-muted small">SEM</div>
+                        <div class="fw-bold">{{ stats.get('sem', (stats.std / (stats.count ** 0.5))|round(3)) }}</div>
+                      </div>
+                      <!-- CV will be shown when enabled -->
+                      <div class="col-6 cv-stat" style="display: none;">
+                        <div class="text-muted small">CV (%)</div>
+                        <div class="fw-bold">{{ stats.get('cv', (stats.std / stats.mean * 100)|round(2) if stats.mean != 0 else 'N/A') }}</div>
+                      </div>
+                      <!-- Sum will be shown when enabled -->
+                      <div class="col-6 sum-stat" style="display: none;">
+                        <div class="text-muted small">Sum</div>
+                        <div class="fw-bold">{{ stats.get('sum', (stats.mean * stats.count)|round(2)) }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Data points -->
+                  <div class="stat-box">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">Sample Size</h6>
+                      <span class="badge bg-primary">{{ stats.count }} values</span>
+                    </div>
+                  </div>
+
+                  <!-- View Full Statistics button -->
+                  <div class="text-center mt-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm view-full-stats-btn" data-column="{{ column }}">
+                      <i class="fas fa-table me-1"></i> View Full Statistics Table
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Full Dataset Statistics Button -->
+        <div class="text-center mb-4">
+          <button type="button" class="btn btn-primary" id="viewFullDatasetStatsBtn">
+            <i class="fas fa-table me-1"></i> View Full Dataset Statistics
+          </button>
+        </div>
+
+        <!-- Full Dataset Statistics Modal -->
+        <div class="modal fade" id="fullDatasetStatsModal" tabindex="-1" aria-labelledby="fullDatasetStatsModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+              <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="fullDatasetStatsModalLabel">Full Dataset Statistics</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="table-responsive">
+                  <table class="table table-bordered table-hover stats-table">
+                    <thead>
+                      <tr>
+                        <th>Statistic</th>
+                        {% for column, stats in summary.items() %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Count</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.count }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>Mean</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.mean }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>Median</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats['50%'] }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>Std Dev</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.std }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>Min</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.min }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>25%</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats['25%'] }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>75%</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats['75%'] }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>Max</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.max }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr>
+                        <td>Range</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.max - stats.min }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="var-row" style="display: none;">
+                        <td>Variance</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('var', stats.std ** 2)|round(2) }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="iqr-row" style="display: none;">
+                        <td>IQR</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ (stats['75%'] - stats['25%'])|round(2) }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="skew-row" style="display: none;">
+                        <td>Skewness</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('skew', 'N/A') }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="kurtosis-row" style="display: none;">
+                        <td>Kurtosis</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('kurtosis', 'N/A') }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="sem-row" style="display: none;">
+                        <td>SEM</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('sem', (stats.std / (stats.count ** 0.5))|round(3)) }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="cv-row" style="display: none;">
+                        <td>CV (%)</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('cv', (stats.std / stats.mean * 100)|round(2) if stats.mean != 0 else 'N/A') }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="sum-row" style="display: none;">
+                        <td>Sum</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('sum', (stats.mean * stats.count)|round(2)) }}</td>
+                        {% endfor %}
+                      </tr>
+                      <tr class="mode-row" style="display: none;">
+                        <td>Mode</td>
+                        {% for column, stats in summary.items() %}
+                        <td>{{ stats.get('mode', 'N/A') }}</td>
+                        {% endfor %}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="text-end mt-3">
+                  <button class="btn btn-success btn-sm" id="exportFullTableBtn">
+                    <i class="fas fa-download me-1"></i> Export Table </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Statistics Modal -->
+        <div class="modal fade" id="columnStatsModal" tabindex="-1" aria-labelledby="columnStatsModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="columnStatsModalLabel">Column Statistics</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div id="columnStatsContent">
+                  <!-- Column statistics will be loaded here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-warning">
+          <h5><i class="fas fa-exclamation-triangle me-2"></i>No Numerical Data Available</h5>
+          <p class="mb-0">
+            This dataset doesn't contain numerical columns for statistical analysis. Statistical summaries are only available for numerical data.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for statistics customization -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize checkboxes and buttons
+    const updateStatsBtn = document.getElementById('updateStatsBtn');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectBasicBtn = document.getElementById('selectBasicBtn');
+    const exportStatsBtn = document.getElementById('exportStatsBtn');
+    const viewFullDatasetStatsBtn = document.getElementById('viewFullDatasetStatsBtn');
+    const exportFullTableBtn = document.getElementById('exportFullTableBtn');
+    const statCheckboxes = document.querySelectorAll('input[name="stats"]');
+
+    // Handle "View Full Dataset Statistics" button click
+    if (viewFullDatasetStatsBtn) {
+      viewFullDatasetStatsBtn.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('fullDatasetStatsModal'));
+        modal.show();
+      });
+    }
+
+    // Handle "View Full Statistics Table" button clicks for each column
+    const viewFullStatsButtons = document.querySelectorAll('.view-full-stats-btn');
+    viewFullStatsButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const columnName = this.getAttribute('data-column');
+
+        // Get statistics for this column from the page
+        const columnStats = {};
+        {% if summary and summary|length > 0 %}
+          {% for column, stats in summary.items() %}
+            if (columnName === "{{ column }}") {
+              columnStats.name = "{{ column }}";
+              columnStats.count = {{ stats.count }};
+              columnStats.mean = {{ stats.mean }};
+              columnStats.median = {{ stats['50%'] }};
+              columnStats.min = {{ stats.min }};
+              columnStats.max = {{ stats.max }};
+              columnStats.std = {{ stats.std }};
+              columnStats.q1 = {{ stats['25%'] }};
+              columnStats.q3 = {{ stats['75%'] }};
+              columnStats.range = {{ stats.max - stats.min }};
+              columnStats.iqr = {{ stats['75%'] - stats['25%'] }};
+              columnStats.var = {{ stats.std ** 2 }};
+            }
+          {% endfor %}
+        {% endif %}
+
+        // Generate HTML for column statistics
+        let statsHtml = `
+          <h5 class="mb-3">${columnStats.name} - Detailed Statistics</h5>
+          <div class="table-responsive">
+            <table class="table table-bordered stats-table">
+              <thead>
+                <tr>
+                  <th>Statistic</th>
+                  <th>Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Count</td>
+                  <td>${columnStats.count}</td>
+                  <td>Number of non-missing values</td>
+                </tr>
+                <tr>
+                  <td>Mean</td>
+                  <td>${columnStats.mean.toFixed(2)}</td>
+                  <td>Average of all values</td>
+                </tr>
+                <tr>
+                  <td>Median</td>
+                  <td>${columnStats.median.toFixed(2)}</td>
+                  <td>Middle value (50th percentile)</td>
+                </tr>
+                <tr>
+                  <td>Minimum</td>
+                  <td>${columnStats.min.toFixed(2)}</td>
+                  <td>Smallest value</td>
+                </tr>
+                <tr>
+                  <td>Maximum</td>
+                  <td>${columnStats.max.toFixed(2)}</td>
+                  <td>Largest value</td>
+                </tr>
+                <tr>
+                  <td>Range</td>
+                  <td>${columnStats.range.toFixed(2)}</td>
+                  <td>Difference between max and min</td>
+                </tr>
+                <tr>
+                  <td>Standard Deviation</td>
+                  <td>${columnStats.std.toFixed(2)}</td>
+                  <td>Measure of data dispersion</td>
+                </tr>
+                <tr>
+                  <td>Variance</td>
+                  <td>${columnStats.var.toFixed(2)}</td>
+                  <td>Square of standard deviation</td>
+                </tr>
+                <tr>
+                  <td>25th Percentile (Q1)</td>
+                  <td>${columnStats.q1.toFixed(2)}</td>
+                  <td>First quartile value</td>
+                </tr>
+                <tr>
+                  <td>75th Percentile (Q3)</td>
+                  <td>${columnStats.q3.toFixed(2)}</td>
+                  <td>Third quartile value</td>
+                </tr>
+                <tr>
+                  <td>Interquartile Range (IQR)</td>
+                  <td>${columnStats.iqr.toFixed(2)}</td>
+                  <td>Difference between Q3 and Q1</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="distribution-visualization mt-4">
+            <h6 class="mb-3">Value Distribution</h6>
+            <p class="text-muted">Note: This is a placeholder for a histogram or distribution visualization.</p>
+          </div>
+
+          <div class="text-end mt-3">
+            <button class="btn btn-success btn-sm" id="exportColumnStatsBtn" data-column="${columnStats.name}">
+              <i class="fas fa-download me-1"></i> Export Column Statistics
+            </button>
+          </div>
+        `;
+
+        // Update modal title and content
+        const modal = document.getElementById('columnStatsModal');
+        modal.querySelector('.modal-title').textContent = `${columnStats.name} - Detailed Statistics`;
+        modal.querySelector('#columnStatsContent').innerHTML = statsHtml;
+
+        // Show the modal
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+      });
+    });
+
+    // Handle "Update Statistics" button click
+    if (updateStatsBtn) {
+      updateStatsBtn.addEventListener('click', function() {
+        // Get selected statistics
+        const selectedStats = Array.from(statCheckboxes)
+          .filter(checkbox => checkbox.checked)
+          .map(checkbox => checkbox.value);
+
+        // Show/hide stat sections based on selections
+        toggleStatVisibility(selectedStats);
+
+        // Show success message
+        alert('Statistics view updated successfully!');
+      });
+    }
+
+    // Handle "Select All" button click
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', function() {
+        statCheckboxes.forEach(checkbox => {
+          checkbox.checked = true;
+        });
+      });
+    }
+
+    // Handle "Basic Stats Only" button click
+    if (selectBasicBtn) {
+      selectBasicBtn.addEventListener('click', function() {
+        const basicStats = ['mean', 'median', 'std', 'min', 'max', 'range', 'quartiles'];
+        statCheckboxes.forEach(checkbox => {
+          checkbox.checked = basicStats.includes(checkbox.value);
+        });
+      });
+    }
+
+    // Handle "Export Statistics" button click
+    if (exportStatsBtn) {
+      exportStatsBtn.addEventListener('click', function() {
+        // Generate CSV content
+        let csvContent = "data:text/csv;charset=utf-8,";
+
+        // Headers
+        let headers = ["Statistic"];
+        {% if summary and summary|length > 0 %}
+          {% for column in summary.keys() %}
+            headers.push("{{ column }}");
+          {% endfor %}
+        {% endif %}
+        csvContent += headers.join(",") + "\r\n";
+
+        // Basic statistics
+        const statsRows = [
+          ["Count"],
+          ["Mean"],
+          ["Median"],
+          ["Std Dev"],
+          ["Min"],
+          ["25%"],
+          ["75%"],
+          ["Max"],
+          ["Range"]
+        ];
+
+        {% if summary and summary|length > 0 %}
+          {% for column, stats in summary.items() %}
+            statsRows[0].push("{{ stats.count }}");
+            statsRows[1].push("{{ stats.mean }}");
+            statsRows[2].push("{{ stats['50%'] }}");
+            statsRows[3].push("{{ stats.std }}");
+            statsRows[4].push("{{ stats.min }}");
+            statsRows[5].push("{{ stats['25%'] }}");
+            statsRows[6].push("{{ stats['75%'] }}");
+            statsRows[7].push("{{ stats.max }}");
+            statsRows[8].push("{{ stats.max - stats.min }}");
+          {% endfor %}
+        {% endif %}
+
+        // Add rows to CSV content
+        statsRows.forEach(row => {
+          csvContent += row.join(",") + "\r\n";
+        });
+
+        // Create download link
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "dataset_statistics.csv");
+        document.body.appendChild(link);
+
+        // Trigger download
+        link.click();
+      });
+    }
+
+    // Function to toggle stat visibility based on selections
+    function toggleStatVisibility(selectedStats) {
+      // Handle mode
+      const modeElements = document.querySelectorAll('.mode-stat, .mode-row');
+      modeElements.forEach(el => {
+        el.style.display = selectedStats.includes('mode') ? 'block' : 'none';
+      });
+
+      // Handle variance
+      const varElements = document.querySelectorAll('.var-stat, .var-row');
+      varElements.forEach(el => {
+        el.style.display = selectedStats.includes('var') ? 'block' : 'none';
+      });
+
+      // Handle IQR
+      const iqrElements = document.querySelectorAll('.iqr-stat, .iqr-row');
+      iqrElements.forEach(el => {
+        el.style.display = selectedStats.includes('iqr') ? 'block' : 'none';
+      });
+
+      // Handle advanced stats section
+      const advancedStatsVisible = ['skew', 'kurtosis', 'sem', 'cv', 'sum'].some(stat =>
+        selectedStats.includes(stat)
+      );
+
+      const advancedStatsSections = document.querySelectorAll('.advanced-stats-section');
+      advancedStatsSections.forEach(section => {
+        section.style.display = advancedStatsVisible ? 'block' : 'none';
+      });
+
+      // Handle skewness
+      const skewElements = document.querySelectorAll('.skew-stat, .skew-row');
+      skewElements.forEach(el => {
+        el.style.display = selectedStats.includes('skew') ? 'block' : 'none';
+      });
+
+      // Handle kurtosis
+      const kurtosisElements = document.querySelectorAll('.kurtosis-stat, .kurtosis-row');
+      kurtosisElements.forEach(el => {
+        el.style.display = selectedStats.includes('kurtosis') ? 'block' : 'none';
+      });
+
+      // Handle SEM
+      const semElements = document.querySelectorAll('.sem-stat, .sem-row');
+      semElements.forEach(el => {
+        el.style.display = selectedStats.includes('sem') ? 'block' : 'none';
+      });
+
+      // Handle CV
+      const cvElements = document.querySelectorAll('.cv-stat, .cv-row');
+      cvElements.forEach(el => {
+        el.style.display = selectedStats.includes('cv') ? 'block' : 'none';
+      });
+
+      // Handle Sum
+      const sumElements = document.querySelectorAll('.sum-stat, .sum-row');
+      sumElements.forEach(el => {
+        el.style.display = selectedStats.includes('sum') ? 'block' : 'none';
+      });
+
+      // Handle quartiles/five-number summary
+      const fiveNumberElements = document.querySelectorAll('.five-number-stat');
+      fiveNumberElements.forEach(el => {
+        el.style.display = selectedStats.includes('quartiles') ? 'block' : 'none';
+      });
+    }
+
+    // Handle "Export Full Table" button click
+    if (exportFullTableBtn) {
+      exportFullTableBtn.addEventListener('click', function() {
+        alert('Full statistics table export functionality would be implemented here.');
+      });
+    }
+  });
+</script>
+{% endblock %}

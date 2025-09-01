@@ -1,0 +1,110 @@
+/* Preprocessing page styles */
+.preprocessing-container {
+    padding: 20px;
+}
+
+.pipeline-steps {
+    border-left: 3px solid #dee2e6;
+    padding-left: 15px;
+}
+
+.pipeline-step {
+    border-left: 3px solid #0d6efd;
+    transition: all 0.3s ease;
+}
+
+.pipeline-step:hover {
+    border-left: 3px solid #0b5ed7;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.preview-step {
+    border-left: 3px solid #198754;
+}
+
+.sample-data-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Transformation step visualization */
+.transform-visualization {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Step details */
+.step-details {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+/* Responsive tables */
+.table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Quality score indicators */
+.quality-indicator {
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.quality-bar {
+    height: 100%;
+    transition: width 0.6s ease;
+}
+
+/* Custom select for multiple columns */
+.select2-container--default .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+}
+
+/* Transformation modal */
+#transformParamsContainer .form-group {
+    margin-bottom: 1rem;
+}
+
+/* Before/after comparison */
+.comparison-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.comparison-box {
+    width: 48%;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.comparison-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+}

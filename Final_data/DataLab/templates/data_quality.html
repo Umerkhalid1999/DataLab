@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+
+{% block title %}Data Quality - {{ dataset.name }} - DataLab{% endblock %}
+
+{% block head %}
+<!-- Additional CSS for data quality page -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/datalab-styles.css') }}">
+<style>
+  .quality-calculation-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  .quality-calculation-table th, .quality-calculation-table td {
+    padding: 8px;
+    border: 1px solid #dee2e6;
+  }
+  .quality-calculation-table thead {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  .nav-tabs .nav-link.active {
+    font-weight: bold;
+    border-bottom: 3px solid var(--primary-600);
+  }
+  .badge-count {
+    font-size: 12px;
+    background-color: #f8f9fa;
+    color: #212529;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 5px;
+  }
+  .calculation-formula {
+    background-color: rgba(59, 130, 246, 0.05);
+    padding: 10px;
+    border-radius: 5px;
+    font-family: monospace;
+    margin: 10px 0;
+  }
+  .warning-row {
+    background-color: rgba(255, 193, 7, 0.1);
+  }
+  .error-row {
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar py-3 min-vh-100">
+      <div class="d-flex justify-content-center mb-4">
+        <h4 class="text-primary">DataLab</h4>
+      </div>
+      <div class="nav flex-column">
+        <div class="nav-item py-2 px-3">
+          <a href="{{ url_for('dashboard') }}" class="text-decoration-none text-dark d-flex align-items-center">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            <span>Dashboard</span>
+          </a>
+        </div>
+        <div class="nav-item py-2 px-3">
+          <a href="{{ url_for('data_preview', dataset_id=dataset.id) }}" class="text-decoration-none text-dark d-flex align-items-center">
+            <i class="fas fa-eye me-2"></i>
+            <span>Data Preview</span>
+          </a>
+        </div>
+        <div class="nav-item py-2 px-3">
+          <span class="d-flex align-items-center fw-bold active">
+            <i class="fas fa-check-circle me-2"></i>
+            <span>Data Quality</span>
+          </span>
+        </div>
+        <div class="nav-item py-2 px-3">
+          <a href="{{ url_for('summary_statistics', dataset_id=dataset.id) }}" class="text-decoration-none text-dark d-flex align-items-center">
+            <i class="fas fa-chart-pie me-2"></i>
+            <span>Statistics</span>
+          </a>
+        </div>
+        <div class="nav-item mt-auto py-2 px-3">
+          <a href="{{ url_for('logout') }}" class="text-decoration-none text-dark d-flex align-items-center logout-btn">
+            <i class="fas fa-sign-out-alt me-2"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 px-md-4 py-4">
+      <!-- Breadcrumb and actions -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Data Quality</li>
+          </ol>
+        </nav>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+      </div>
+
+      <!-- Dataset information -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            {% if dataset.file_type == 'csv' %}
+              <i class="fas fa-file-csv me-2"></i>
+            {% elif dataset.file_type == 'json' %}
+              <i class="fas fa-file-code me-2"></i>
+            {% elif dataset.file_type in ['xlsx', 'xls'] %}
+              <i class="fas fa-file-excel me-2"></i>
+            {% else %}
+              <i class="fas fa-file-alt me-2"></i>
+            {% endif %}
+            {{ dataset.name }} - Data Quality Report
+          </h5>
+        </div>
+        <div class="card-body">
+          <ul class="nav nav-tabs mb-4" id="qualityTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="calculation-tab" data-bs-toggle="tab" data-bs-target="#calculation" type="button" role="tab" aria-controls="calculation" aria-selected="false">Score Calculation</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues" type="button" role="tab" aria-controls="issues" aria-selected="false">
+                Issues
+                {% if quality_metrics %}
+                  {% set issue_count = quality_metrics.missing_values + quality_metrics.duplicate_rows + (quality_metrics.outliers|sum(attribute='value')|default(0)) %}
+                  <span class="badge-count">{{ issue_count }}</span>
+                {% endif %}
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="qualityTabsContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+              <div class="row">
+                <div class="col-md-5">
+                  <h5 class="text-muted mb-3">Quality Score</h5>
+                  <div class="d-flex align-items-center mb-4">
+                    <div class="display-3 fw-bold me-3" id="qualityScoreDisplay">
+                      {{ dataset.quality_score }}%
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="quality-indicator mb-2">
+                        <div class="quality-bar
+                          {% if dataset.quality_score >= 80 %}quality-excellent
+                          {% elif dataset.quality_score >= 60 %}quality-good
+                          {% else %}quality-poor
+                          {% endif %}"
+                          style="width: {{ dataset.quality_score }}%;">
+                        </div>
+                      </div>
+                      <div class="d-flex justify-content-between text-muted small">
+                        <span>Poor</span>
+                        <span>Average</span>
+                        <span>Excellent</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Quality score explanation -->
+                  <div class="mb-3">
+                    <h6>What does this score mean?</h6>
+                    <p class="text-muted">
+                      {% if dataset.quality_score >= 80 %}
+                        This dataset has excellent quality with minimal issues. It's ready for analysis.
+                      {% elif dataset.quality_score >= 60 %}
+                        This dataset has good quality but may need some preprocessing before analysis.
+                      {% else %}
+                        This dataset has quality issues that need to be addressed before analysis.
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="col-md-7">
+                  <h5 class="text-muted mb-3">Dataset Summary</h5>
+                  <div class="row g-4">
+                    <div class="col-6">
+                      <div class="d-flex align-items-center">
+                        <div class="metric-icon bg-primary">
+                          <i class="fas fa-table"></i>
+                        </div>
+                        <div>
+                          <div class="text-muted small">Rows</div>
+                          <div class="fs-4 fw-bold">{{ dataset.rows }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="d-flex align-items-center">
+                        <div class="metric-icon bg-success">
+                          <i class="fas fa-columns"></i>
+                        </div>
+                        <div>
+                          <div class="text-muted small">Columns</div>
+                          <div class="fs-4 fw-bold">{{ dataset.columns }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    {% if quality_metrics %}
+                    <div class="col-6">
+                      <div class="d-flex align-items-center">
+                        <div class="metric-icon bg-warning">
+                          <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                          <div class="text-muted small">Missing Values</div>
+                          <div class="fs-4 fw-bold">{{ quality_metrics.missing_values }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="d-flex align-items-center">
+                        <div class="metric-icon bg-danger">
+                          <i class="fas fa-copy"></i>
+                        </div>
+                        <div>
+                          <div class="text-muted small">Duplicate Rows</div>
+                          <div class="fs-4 fw-bold">{{ quality_metrics.duplicate_rows }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Score Calculation Tab -->
+            <div class="tab-pane fade" id="calculation" role="tabpanel" aria-labelledby="calculation-tab">
+              <h5 class="mb-3">Quality Score Calculation</h5>
+              <p>The quality score is calculated based on several factors in your dataset to provide a comprehensive assessment of data quality. Below is the detailed breakdown of how the final score of <strong>{{ dataset.quality_score }}%</strong> was calculated:</p>
+
+              <div class="calculation-formula">
+                Quality Score = 100 - (Missing Values % + Duplicate Rows Penalty + Outliers Penalty)
+              </div>
+
+              {% if quality_metrics %}
+              <table class="quality-calculation-table">
+                <thead>
+                  <tr>
+                    <th>Factor</th>
+                    <th>Value</th>
+                    <th>Impact</th>
+                    <th>Weight</th>
+                    <th>Calculation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Missing Values</td>
+                    <td>{{ quality_metrics.missing_values }} values</td>
+                    <td>{{ quality_metrics.missing_percentage }}%</td>
+                    <td>100%</td>
+                    <td>{{ quality_metrics.missing_percentage }}% reduction</td>
+                  </tr>
+                  <tr>
+                    <td>Duplicate Rows</td>
+                    <td>{{ quality_metrics.duplicate_rows }} rows</td>
+                    <td>{{ (quality_metrics.duplicate_rows / dataset.rows * 100)|round(2) if dataset.rows > 0 else 0 }}%</td>
+                    <td>50%</td>
+                    <td>{{ ((quality_metrics.duplicate_rows / dataset.rows * 100) * 0.5)|round(2) if dataset.rows > 0 else 0 }}% reduction</td>
+                  </tr>
+                  {% if quality_metrics.outliers %}
+                  <tr>
+                    <td>Outliers</td>
+                    <td>{{ quality_metrics.outliers|sum(attribute='value')|default(0) }} points</td>
+                    <td>{{ (quality_metrics.outliers|sum(attribute='value')|default(0) / dataset.rows * 100)|round(2) if dataset.rows > 0 else 0 }}%</td>
+                    <td>25%</td>
+                    <td>{{ ((quality_metrics.outliers|sum(attribute='value')|default(0) / dataset.rows * 100) * 0.25)|round(2) if dataset.rows > 0 else 0 }}% reduction</td>
+                  </tr>
+                  {% endif %}
+                  <tr>
+                    <td colspan="4" class="text-end fw-bold">Base Score:</td>
+                    <td>100%</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4" class="text-end fw-bold">Total Deductions:</td>
+                    <td>{{ (100 - dataset.quality_score)|round(2) }}%</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4" class="text-end fw-bold">Final Quality Score:</td>
+                    <td class="fw-bold">{{ dataset.quality_score }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="mt-4">
+                <h6>Score Interpretation</h6>
+                <ul>
+                  <li><strong>90-100%</strong>: Excellent quality - The dataset is clean and ready for analysis</li>
+                  <li><strong>70-89%</strong>: Good quality - Minor preprocessing recommended</li>
+                  <li><strong>50-69%</strong>: Fair quality - Moderate preprocessing required</li>
+                  <li><strong>Below 50%</strong>: Poor quality - Significant data cleaning needed</li>
+                </ul>
+              </div>
+              {% else %}
+              <div class="alert alert-warning">
+                <h6>Score Calculation Not Available</h6>
+                <p class="mb-0">Detailed score calculation is only available for CSV and Excel files. For this file type, a default quality score was assigned.</p>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Issues Tab -->
+            <div class="tab-pane fade" id="issues" role="tabpanel" aria-labelledby="issues-tab">
+              <h5 class="mb-3">Data Quality Issues</h5>
+              <p>This tab provides a detailed breakdown of all quality issues detected in your dataset.</p>
+
+              {% if quality_metrics %}
+              <!-- Missing Values Section -->
+              <div class="card mb-4">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-times-circle text-warning me-2"></i>Missing Values</h6>
+                </div>
+                <div class="card-body">
+                  {% if quality_metrics.missing_values > 0 %}
+                  <p>Your dataset contains <strong>{{ quality_metrics.missing_values }}</strong> missing values ({{ quality_metrics.missing_percentage }}% of all data points).</p>
+
+                  <!-- Missing values by column - example, would need to be added to backend -->
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                      <thead>
+                        <tr>
+                          <th>Column</th>
+                          <th>Missing Count</th>
+                          <th>Missing %</th>
+                          <th>Severity</th>
+                          <th>Recommendation</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Example rows - replace with actual calculation from backend -->
+                        <tr class="warning-row">
+                          <td>Age</td>
+                          <td>5</td>
+                          <td>50%</td>
+                          <td><span class="badge bg-warning">High</span></td>
+                          <td>Consider using mean/median imputation</td>
+                        </tr>
+                        <tr>
+                          <td>Salary</td>
+                          <td>2</td>
+                          <td>20%</td>
+                          <td><span class="badge bg-info">Medium</span></td>
+                          <td>Impute with median value</td>
+                        </tr>
+                        <tr>
+                          <td>ID</td>
+                          <td>0</td>
+                          <td>0%</td>
+                          <td><span class="badge bg-success">None</span></td>
+                          <td>No action needed</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                    <h6>No Missing Values Detected</h6>
+                    <p class="text-muted">Your dataset appears to be complete with no missing values.</p>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Duplicate Rows Section -->
+              <div class="card mb-4">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-copy text-info me-2"></i>Duplicate Rows</h6>
+                </div>
+                <div class="card-body">
+                  {% if quality_metrics.duplicate_rows > 0 %}
+                  <p>Your dataset contains <strong>{{ quality_metrics.duplicate_rows }}</strong> duplicate rows ({{ (quality_metrics.duplicate_rows / dataset.rows * 100)|round(2) if dataset.rows > 0 else 0 }}% of total rows).</p>
+
+                  <div class="alert alert-info">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Impact of Duplicates</h6>
+                    <p class="mb-0">Duplicate rows can skew analysis results and lead to biased models. It's recommended to remove duplicates unless they represent genuine repeated measurements.</p>
+                  </div>
+
+                  <button class="btn btn-outline-primary btn-sm mt-2">
+                    <i class="fas fa-eye me-1"></i> View First 5 Duplicates
+                  </button>
+                  {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                    <h6>No Duplicate Rows Detected</h6>
+                    <p class="text-muted">Your dataset doesn't contain any duplicate rows.</p>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Outliers Section -->
+              <div class="card mb-4">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-chart-line text-danger me-2"></i>Outliers</h6>
+                </div>
+                <div class="card-body">
+                  {% if quality_metrics.outliers and quality_metrics.outliers|length > 0 %}
+                  <p>Your dataset contains outliers in {{ quality_metrics.outliers|length }} columns. These are values that fall significantly outside the normal distribution.</p>
+
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                      <thead>
+                        <tr>
+                          <th>Column</th>
+                          <th>Outlier Count</th>
+                          <th>% of Data</th>
+                          <th>Severity</th>
+                          <th>Recommendation</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for column, count in quality_metrics.outliers.items() %}
+                        <tr {% if (count / dataset.rows * 100)|round(2) > 5 %}class="error-row"{% endif %}>
+                          <td>{{ column }}</td>
+                          <td>{{ count }}</td>
+                          <td>{{ (count / dataset.rows * 100)|round(2) if dataset.rows > 0 else 0 }}%</td>
+                          <td>
+                            {% if (count / dataset.rows * 100)|round(2) > 10 %}
+                              <span class="badge bg-danger">High</span>
+                            {% elif (count / dataset.rows * 100)|round(2) > 5 %}
+                              <span class="badge bg-warning">Medium</span>
+                            {% else %}
+                              <span class="badge bg-info">Low</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if (count / dataset.rows * 100)|round(2) > 10 %}
+                              Investigate and consider removal
+                            {% elif (count / dataset.rows * 100)|round(2) > 5 %}
+                              Apply capping/flooring
+                            {% else %}
+                              Monitor during analysis
+                            {% endif %}
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                    <h6>No Significant Outliers Detected</h6>
+                    <p class="text-muted">Your numerical columns don't contain significant outliers that require attention.</p>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Data Type Issues Section -->
+              <div class="card">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-exclamation-triangle text-primary me-2"></i>Data Type Issues</h6>
+                </div>
+                <div class="card-body">
+                  <p>This section highlights columns where the detected data type may not be optimal for analysis.</p>
+
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                      <thead>
+                        <tr>
+                          <th>Column</th>
+                          <th>Current Type</th>
+                          <th>Suggested Type</th>
+                          <th>Issue</th>
+                          <th>Recommendation</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Example data type issues - would need backend implementation -->
+                        <tr class="warning-row">
+                          <td>Date</td>
+                          <td>object</td>
+                          <td>datetime</td>
+                          <td>Dates stored as strings</td>
+                          <td>Convert to datetime format</td>
+                        </tr>
+                        <tr>
+                          <td>ID</td>
+                          <td>int64</td>
+                          <td>object</td>
+                          <td>IDs should not be treated as numbers</td>
+                          <td>Convert to string/categorical</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              {% else %}
+              <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Issues Analysis Not Available</h5>
+                <p class="mb-0">
+                  Detailed quality issues are only available for CSV and Excel files. Try uploading your data in one of these formats for a complete quality analysis.
+                </p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data quality metrics -->
+      {% if quality_metrics %}
+      <div class="row">
+        <!-- Missing values -->
+        <div class="col-md-6 mb-4">
+          <div class="card quality-card h-100">
+            <div class="card-header">
+              <h5 class="mb-0 text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Missing Values</h5>
+            </div>
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-3">
+                <div class="fs-2 fw-bold me-3">{{ quality_metrics.missing_percentage }}%</div>
+                <div class="flex-grow-1">
+                  <div class="quality-indicator">
+                    <div class="quality-bar quality-good" style="width: {{ quality_metrics.missing_percentage }}%;"></div>
+                  </div>
+                  <div class="text-muted small mt-1">of all values are missing</div>
+                </div>
+              </div>
+              <p class="text-muted">
+                This dataset has {{ quality_metrics.missing_values }} missing values out of {{ dataset.rows * dataset.columns }} total values.
+                {% if quality_metrics.missing_percentage > 20 %}
+                  This is a high percentage of missing data that may affect your analysis results.
+                {% elif quality_metrics.missing_percentage > 5 %}
+                  This is a moderate amount of missing data. Consider how to handle these values in your analysis.
+                {% else %}
+                  This is a relatively small amount of missing data and should not significantly impact your analysis.
+                {% endif %}
+              </p>
+              <div class="alert alert-info">
+                <h6><i class="fas fa-lightbulb me-2"></i>Recommendation</h6>
+                <p class="mb-0">
+                  {% if quality_metrics.missing_percentage > 20 %}
+                    Consider dropping columns with too many missing values or using advanced imputation techniques.
+                  {% elif quality_metrics.missing_percentage > 5 %}
+                    Use imputation techniques like mean/median replacement or predictive modeling to fill missing values.
+                  {% else %}
+                    Replace missing values with mean, median, or mode as appropriate for each column.
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data types -->
+        <div class="col-md-6 mb-4">
+          <div class="card quality-card h-100">
+            <div class="card-header">
+              <h5 class="mb-0 text-primary"><i class="fas fa-tag me-2"></i>Data Types</h5>
+            </div>
+            <div class="card-body">
+              <div class="type-distribution mb-4">
+                {% if quality_metrics.data_types %}
+                  {% set colors = ['var(--primary-500)', 'var(--success-500)', 'var(--warning-500)', 'var(--danger-500)', 'var(--info-500)'] %}
+                  {% set total = dataset.columns %}
+                  {% for i in range(quality_metrics.data_types|length) %}
+                    {% set type_name = quality_metrics.data_types.keys()|list|sort|list[i] %}
+                    {% set count = quality_metrics.data_types[type_name] %}
+                    {% set percentage = (count / total * 100)|round|int %}
+                    {% set left = (i * 20 + 1)|string + '%' %}
+                    <div class="type-distribution-bar"
+                         style="height: {{ percentage|string + '%' }};
+                                left: {{ left }};
+                                background-color: {{ colors[i % colors|length] }};"
+                         title="{{ type_name }}: {{ count }} columns ({{ percentage }}%)">
+                    </div>
+                  {% endfor %}
+                {% endif %}
+              </div>
+              <div class="row">
+                {% if quality_metrics.data_types %}
+                  {% set colors = ['var(--primary-500)', 'var(--success-500)', 'var(--warning-500)', 'var(--danger-500)', 'var(--info-500)'] %}
+                  {% for i in range(quality_metrics.data_types|length) %}
+                    {% set type_name = quality_metrics.data_types.keys()|list|sort|list[i] %}
+                    {% set count = quality_metrics.data_types[type_name] %}
+                    <div class="col-6 mb-2">
+                      <div class="d-flex align-items-center">
+                        <div class="me-2" style="width: 12px; height: 12px; border-radius: 50%; background-color: {{ colors[i % colors|length] }};"></div>
+                        <div class="text-muted">{{ type_name }}</div>
+                        <div class="ms-auto fw-bold">{{ count }}</div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="col-12">
+                    <p class="text-muted">No data type information available.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outliers -->
+        <div class="col-md-6 mb-4">
+          <div class="card quality-card h-100">
+            <div class="card-header">
+              <h5 class="mb-0 text-danger"><i class="fas fa-chart-line me-2"></i>Outliers</h5>
+            </div>
+            <div class="card-body">
+              {% if quality_metrics.outliers and quality_metrics.outliers|length > 0 %}
+                <p class="text-muted">
+                  Outliers are extreme values that differ significantly from other observations. They can indicate data entry errors or genuinely unusual data points.
+                </p>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Column</th>
+                        <th>Outliers Count</th>
+                        <th>% of Data</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for column, count in quality_metrics.outliers.items() %}
+                        <tr>
+                          <td>{{ column }}</td>
+                          <td>{{ count }}</td>
+                          <td>{{ ((count / dataset.rows) * 100)|round(2) }}%</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="alert alert-info mt-3">
+                  <h6><i class="fas fa-lightbulb me-2"></i>Recommendation</h6>
+                  <p class="mb-0">
+                    Investigate outliers in columns with high counts. Consider capping extreme values or removing them if they represent errors.
+                  </p>
+                </div>
+              {% else %}
+                <div class="text-center py-4">
+                  <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                  <h5>No significant outliers detected</h5>
+                  <p class="text-muted">
+                    The numerical columns in this dataset don't have significant outliers that require attention.
+                  </p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Duplicate rows -->
+        <div class="col-md-6 mb-4">
+          <div class="card quality-card h-100">
+            <div class="card-header">
+              <h5 class="mb-0 text-info"><i class="fas fa-copy me-2"></i>Duplicate Rows</h5>
+            </div>
+            <div class="card-body">
+              {% if quality_metrics.duplicate_rows > 0 %}
+                <div class="d-flex align-items-center mb-3">
+                  <div class="fs-2 fw-bold me-3">{{ quality_metrics.duplicate_rows }}</div>
+                  <div class="flex-grow-1">
+                    <div class="quality-indicator">
+                      <div class="quality-bar" style="width: {{ (quality_metrics.duplicate_rows / dataset.rows * 100)|round|int }}%; background-color: var(--info-500);"></div>
+                    </div>
+                    <div class="text-muted small mt-1">duplicate rows found ({{ (quality_metrics.duplicate_rows / dataset.rows * 100)|round(2) }}% of data)</div>
+                  </div>
+                </div>
+                <p class="text-muted">
+                  Duplicate rows can inflate model performance metrics and skew your analysis results. They should typically be removed unless there's a specific reason to keep them.
+                </p>
+                <div class="alert alert-info">
+                  <h6><i class="fas fa-lightbulb me-2"></i>Recommendation</h6>
+                  <p class="mb-0">
+                    Remove duplicate rows before proceeding with analysis to ensure accurate results.
+                  </p>
+                </div>
+              {% else %}
+                <div class="text-center py-4">
+                  <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                  <h5>No duplicate rows found</h5>
+                  <p class="text-muted">
+                    Your dataset doesn't contain any duplicate rows, which is good for data quality and analysis reliability.
+                  </p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="alert alert-warning">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Quality Analysis Not Available</h5>
+        <p class="mb-0">
+          Detailed quality metrics are only available for CSV and Excel files. Try uploading your data in one of these formats for a complete quality analysis.
+        </p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for tab functionality -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tabs
+    var triggerTabList = [].slice.call(document.querySelectorAll('#qualityTabs a'))
+    triggerTabList.forEach(function (triggerEl) {
+      var tabTrigger = new bootstrap.Tab(triggerEl)
+      triggerEl.addEventListener('click', function (event) {
+        event.preventDefault()
+        tabTrigger.show()
+      })
+    })
+  });
+</script>
+{% endblock %}

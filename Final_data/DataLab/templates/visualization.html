@@ -1,0 +1,895 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Visualization - DataLab{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/visualization.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title"><i class="fas fa-chart-line me-2"></i>Data Visualization</h1>
+        <div class="actions">
+          <button id="exportDashboardBtn" class="btn btn-outline-primary">
+            <i class="fas fa-file-export me-2"></i>Export Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dataset info card -->
+  <div class="card dataset-info-card mb-4" data-dataset-id="{{ dataset.id }}">
+    <div class="card-body">
+      <div class="d-flex align-items-center">
+        <div class="dataset-icon me-3">
+          {% if dataset.file_type == 'csv' %}
+            <i class="fas fa-file-csv"></i>
+          {% elif dataset.file_type == 'json' %}
+            <i class="fas fa-file-code"></i>
+          {% else %}
+            <i class="fas fa-file"></i>
+          {% endif %}
+        </div>
+        <div>
+          <h5 class="mb-1">{{ dataset.name }}</h5>
+          <div class="dataset-meta">
+            <span class="me-3"><i class="fas fa-table me-1"></i>{{ dataset.rows }} rows</span>
+            <span class="me-3"><i class="fas fa-columns me-1"></i>{{ dataset.columns }} columns</span>
+            <span><i class="fas fa-chart-pie me-1"></i>Quality: {{ dataset.quality_score }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visualization Tab Navigation -->
+  <ul class="nav nav-tabs viz-tabs mb-3" id="vizTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="auto-viz-tab" data-bs-toggle="tab" data-bs-target="#auto-viz" type="button" role="tab" aria-controls="auto-viz" aria-selected="true">
+        <i class="fas fa-magic me-1"></i>Auto Visualizations
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="eda-tab" data-bs-toggle="tab" data-bs-target="#eda" type="button" role="tab" aria-controls="eda" aria-selected="false">
+        <i class="fas fa-chart-bar me-1"></i>EDA
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="correlation-tab" data-bs-toggle="tab" data-bs-target="#correlation" type="button" role="tab" aria-controls="correlation" aria-selected="false">
+        <i class="fas fa-project-diagram me-1"></i>Correlation Analysis
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="anomaly-tab" data-bs-toggle="tab" data-bs-target="#anomaly" type="button" role="tab" aria-controls="anomaly" aria-selected="false">
+        <i class="fas fa-exclamation-triangle me-1"></i>Anomaly Detection
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="custom-viz-tab" data-bs-toggle="tab" data-bs-target="#custom-viz" type="button" role="tab" aria-controls="custom-viz" aria-selected="false">
+        <i class="fas fa-pencil-ruler me-1"></i>Custom Visualization
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="false">
+        <i class="fas fa-th-large me-1"></i>Dashboard
+      </button>
+    </li>
+  </ul>
+
+  <!-- Visualization Tab Content -->
+  <div class="tab-content" id="vizTabContent">
+    <!-- Auto Visualization Tab -->
+    <div class="tab-pane fade show active" id="auto-viz" role="tabpanel" aria-labelledby="auto-viz-tab">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card viz-config-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Visualization Options</h5>
+            </div>
+            <div class="card-body">
+              <form id="autoVizForm">
+                <div class="mb-3">
+                  <label class="form-label">Chart Types:</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="distributionCheck" checked>
+                    <label class="form-check-label" for="distributionCheck">
+                      Distribution Charts
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="relationshipCheck" checked>
+                    <label class="form-check-label" for="relationshipCheck">
+                      Relationship Charts
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="compositionCheck" checked>
+                    <label class="form-check-label" for="compositionCheck">
+                      Composition Charts
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="comparisonCheck" checked>
+                    <label class="form-check-label" for="comparisonCheck">
+                      Comparison Charts
+                    </label>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="maxChartsRange" class="form-label">Maximum Charts: <span id="maxChartsValue">6</span></label>
+                  <input type="range" class="form-range" min="1" max="12" value="6" id="maxChartsRange">
+                </div>
+                <div class="d-grid">
+                  <button type="button" id="generateAutoVizBtn" class="btn btn-primary">
+                    <i class="fas fa-magic me-2"></i>Generate Visualizations
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div id="autoVizContainer" class="row g-3">
+            <div class="col-12 text-center py-5">
+              <div class="auto-viz-placeholder">
+                <i class="fas fa-chart-bar fa-3x mb-3 text-muted"></i>
+                <h4>Ready to Visualize</h4>
+                <p class="text-muted">Click the Generate button to create automatic visualizations based on your data characteristics.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDA Tab -->
+    <div class="tab-pane fade" id="eda" role="tabpanel" aria-labelledby="eda-tab">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card viz-config-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>EDA Options</h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Analysis Type:</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edaType" id="univariateRadio" value="univariate" checked>
+                  <label class="form-check-label" for="univariateRadio">
+                    Univariate Analysis
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edaType" id="bivariateRadio" value="bivariate">
+                  <label class="form-check-label" for="bivariateRadio">
+                    Bivariate Analysis
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edaType" id="multivariateRadio" value="multivariate">
+                  <label class="form-check-label" for="multivariateRadio">
+                    Multivariate Analysis
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edaType" id="missingRadio" value="missing">
+                  <label class="form-check-label" for="missingRadio">
+                    Missing Values Analysis
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edaType" id="distributionRadio" value="distribution">
+                  <label class="form-check-label" for="distributionRadio">
+                    Distribution Comparison
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Univariate Options -->
+              <div id="univariateOptions" class="eda-options">
+                <div class="mb-3">
+                  <label for="univariateFeature" class="form-label">Select Feature:</label>
+                  <select class="form-select" id="univariateFeature">
+                    <option value="">Select a feature</option>
+                    <!-- Will be populated dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Plot Types:</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="histogramCheck" checked>
+                    <label class="form-check-label" for="histogramCheck">
+                      Histogram
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="boxplotCheck" checked>
+                    <label class="form-check-label" for="boxplotCheck">
+                      Box Plot
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="violinCheck">
+                    <label class="form-check-label" for="violinCheck">
+                      Violin Plot
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="countplotCheck" checked>
+                    <label class="form-check-label" for="countplotCheck">
+                      Count Plot (Categorical)
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Bivariate Options -->
+              <div id="bivariateOptions" class="eda-options" style="display: none;">
+                <div class="mb-3">
+                  <label for="bivariateFeature1" class="form-label">Feature 1:</label>
+                  <select class="form-select" id="bivariateFeature1">
+                    <option value="">Select first feature</option>
+                    <!-- Will be populated dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="bivariateFeature2" class="form-label">Feature 2:</label>
+                  <select class="form-select" id="bivariateFeature2">
+                    <option value="">Select second feature</option>
+                    <!-- Will be populated dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Plot Types:</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="scatterCheck" checked>
+                    <label class="form-check-label" for="scatterCheck">
+                      Scatter Plot (Numeric-Numeric)
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="hexbinCheck">
+                    <label class="form-check-label" for="hexbinCheck">
+                      Hexbin Plot (Numeric-Numeric)
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="groupedBoxCheck" checked>
+                    <label class="form-check-label" for="groupedBoxCheck">
+                      Grouped Box Plot (Cat-Num)
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="barplotCheck" checked>
+                    <label class="form-check-label" for="barplotCheck">
+                      Bar Plot (Cat-Num)
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="contingencyCheck" checked>
+                    <label class="form-check-label" for="contingencyCheck">
+                      Contingency Table (Cat-Cat)
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Multivariate Options -->
+              <div id="multivariateOptions" class="eda-options" style="display: none;">
+                <div class="mb-3">
+                  <label class="form-label">Select Features (max 6):</label>
+                  <div id="multivariateFeatureSelection" class="feature-selection mb-3">
+                    <!-- Feature checkboxes will be added here -->
+                    <div class="form-text">Loading features...</div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Plot Types:</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="pairplotCheck" checked>
+                    <label class="form-check-label" for="pairplotCheck">
+                      Pair Plot
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="parallelCheck">
+                    <label class="form-check-label" for="parallelCheck">
+                      Parallel Coordinates
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="pcaCheck">
+                    <label class="form-check-label" for="pcaCheck">
+                      PCA Visualization
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Missing Values Options -->
+              <div id="missingOptions" class="eda-options" style="display: none;">
+                <div class="mb-3">
+                  <label class="form-label">Plot Types:</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="missingMatrixCheck" checked>
+                    <label class="form-check-label" for="missingMatrixCheck">
+                      Missing Value Matrix
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="missingBarCheck" checked>
+                    <label class="form-check-label" for="missingBarCheck">
+                      Missing Value Bar Chart
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="missingHeatmapCheck">
+                    <label class="form-check-label" for="missingHeatmapCheck">
+                      Missing Value Correlation
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Distribution Comparison Options -->
+              <div id="distributionOptions" class="eda-options" style="display: none;">
+                <div class="mb-3">
+                  <label for="distFeature" class="form-label">Select Feature:</label>
+                  <select class="form-select" id="distFeature">
+                    <option value="">Select a feature</option>
+                    <!-- Will be populated dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="distType" class="form-label">Distribution Type:</label>
+                  <select class="form-select" id="distType">
+                    <option value="normal">Normal</option>
+                    <option value="uniform">Uniform</option>
+                    <option value="exponential">Exponential</option>
+                    <option value="lognormal">Log-Normal</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="d-grid">
+                <button type="button" id="generateEdaBtn" class="btn btn-primary">
+                  <i class="fas fa-chart-bar me-2"></i>Generate Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i><span id="edaTitle">Exploratory Data Analysis</span></h5>
+              <div>
+                <button id="downloadEdaBtn" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-download me-1"></i>Download Report
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="edaContainer" class="eda-results">
+                <div id="edaPlaceholder" class="text-center py-5">
+                  <i class="fas fa-chart-bar fa-3x mb-3 text-muted"></i>
+                  <h4>Ready for Analysis</h4>
+                  <p class="text-muted">Configure your analysis options and click Generate Analysis to visualize your data.</p>
+                </div>
+                
+                <!-- Summary Statistics Card -->
+                <div id="summaryStats" class="mb-4" style="display: none;">
+                  <h5 class="mb-3">Summary Statistics</h5>
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                      <thead class="table-light">
+                        <tr id="summaryStatsHeader">
+                          <th>Statistic</th>
+                        </tr>
+                      </thead>
+                      <tbody id="summaryStatsBody">
+                        <!-- Will be populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <!-- Visualization Grid -->
+                <div id="edaVisualizationGrid" class="row g-3">
+                  <!-- Visualizations will be added here by JavaScript -->
+                </div>
+                
+                <!-- Insights Section -->
+                <div id="edaInsights" class="mt-4" style="display: none;">
+                  <div class="card">
+                    <div class="card-header bg-light">
+                      <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Key Insights</h6>
+                    </div>
+                    <div class="card-body">
+                      <ul id="insightsList" class="mb-0">
+                        <!-- Will be populated dynamically -->
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Correlation Analysis Tab -->
+    <div class="tab-pane fade" id="correlation" role="tabpanel" aria-labelledby="correlation-tab">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card viz-config-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Correlation Options</h5>
+            </div>
+            <div class="card-body">
+              <form id="correlationForm">
+                <div class="mb-3">
+                  <label class="form-label">Select Features:</label>
+                  <div id="featureSelection" class="feature-selection mb-3">
+                    <!-- Feature checkboxes will be added here by JavaScript -->
+                    <div class="form-text">Loading features...</div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="correlationMethod" class="form-label">Correlation Method:</label>
+                  <select class="form-select" id="correlationMethod">
+                    <option value="pearson" selected>Pearson (Linear)</option>
+                    <option value="spearman">Spearman (Rank)</option>
+                    <option value="kendall">Kendall (Ordinal)</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="correlationThreshold" class="form-label">Correlation Threshold: <span id="thresholdValue">0.5</span></label>
+                  <input type="range" class="form-range" min="0" max="1" step="0.01" value="0.5" id="correlationThreshold">
+                </div>
+                <div class="d-grid">
+                  <button type="button" id="generateCorrelationBtn" class="btn btn-primary">
+                    <i class="fas fa-calculator me-2"></i>Calculate Correlations
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-th me-2"></i>Correlation Matrix</h5>
+            </div>
+            <div class="card-body">
+              <div id="correlationMatrix" class="correlation-matrix mb-4"></div>
+              <div class="correlation-legend mb-4">
+                <div class="d-flex justify-content-center">
+                  <div class="legend-scale"></div>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <div>Perfect Negative (-1)</div>
+                  <div>No Correlation (0)</div>
+                  <div>Perfect Positive (1)</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Insights</h6>
+                </div>
+                <div class="card-body">
+                  <div id="correlationInsights" class="correlation-insights">
+                    <!-- Correlation insights will be added here by JavaScript -->
+                    <p class="text-muted">Calculate correlations to see insights about relationships between features.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Anomaly Detection Tab -->
+    <div class="tab-pane fade" id="anomaly" role="tabpanel" aria-labelledby="anomaly-tab">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card viz-config-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Anomaly Detection</h5>
+            </div>
+            <div class="card-body">
+              <form id="anomalyForm">
+                <div class="mb-3">
+                  <label for="anomalyFeature" class="form-label">Select Feature:</label>
+                  <select class="form-select" id="anomalyFeature">
+                    <!-- Feature options will be added here by JavaScript -->
+                    <option value="">Select a feature</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="anomalyMethod" class="form-label">Detection Method:</label>
+                  <select class="form-select" id="anomalyMethod">
+                    <option value="statistical" selected>Statistical (IQR)</option>
+                    <option value="zscore">Z-Score</option>
+                    <option value="isolation">Isolation Forest</option>
+                  </select>
+                  <div class="form-text">Different methods detect different types of anomalies.</div>
+                </div>
+                <div class="mb-3">
+                  <label for="anomalySensitivity" class="form-label">Sensitivity: <span id="sensitivityValue">1.5</span></label>
+                  <input type="range" class="form-range" min="0.5" max="3" step="0.1" value="1.5" id="anomalySensitivity">
+                  <div class="form-text">Higher values detect fewer anomalies.</div>
+                </div>
+                <div class="d-grid">
+                  <button type="button" id="detectAnomaliesBtn" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Detect Anomalies
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-chart-scatter me-2"></i>Anomaly Visualization</h5>
+            </div>
+            <div class="card-body">
+              <div id="anomalyPlot" class="anomaly-plot mb-4"></div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <div class="anomaly-stat-card">
+                    <div class="stat-title">Anomalies Detected</div>
+                    <div class="stat-value"><span id="anomalyCount">0</span></div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="anomaly-stat-card">
+                    <div class="stat-title">Percentage of Data</div>
+                    <div class="stat-value"><span id="anomalyPercentage">0.00%</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Anomaly Details</h6>
+                </div>
+                <div class="card-body">
+                  <div id="anomalyDetails" class="anomaly-details">
+                    <!-- Anomaly details will be added here by JavaScript -->
+                    <p class="text-muted">Detect anomalies to see detailed information.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Visualization Tab -->
+    <div class="tab-pane fade" id="custom-viz" role="tabpanel" aria-labelledby="custom-viz-tab">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card viz-config-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-pencil-ruler me-2"></i>Custom Chart</h5>
+            </div>
+            <div class="card-body">
+              <form id="customVizForm">
+                <div class="mb-3">
+                  <label for="chartType" class="form-label">Chart Type:</label>
+                  <select class="form-select" id="chartType">
+                    <option value="bar" selected>Bar Chart</option>
+                    <option value="line">Line Chart</option>
+                    <option value="scatter">Scatter Plot</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="histogram">Histogram</option>
+                    <option value="boxplot">Box Plot</option>
+                    <option value="heatmap">Heat Map</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="xAxis" class="form-label">X-Axis Feature:</label>
+                  <select class="form-select" id="xAxis">
+                    <option value="">Select feature</option>
+                    <!-- Options will be added dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3" id="yAxisContainer">
+                  <label for="yAxis" class="form-label">Y-Axis Feature:</label>
+                  <select class="form-select" id="yAxis">
+                    <option value="">Select feature</option>
+                    <!-- Options will be added dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3" id="groupContainer">
+                  <label for="groupBy" class="form-label">Group By (Optional):</label>
+                  <select class="form-select" id="groupBy">
+                    <option value="">None</option>
+                    <!-- Options will be added dynamically -->
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="colorTheme" class="form-label">Color Theme:</label>
+                  <select class="form-select" id="colorTheme">
+                    <option value="default" selected>Default</option>
+                    <option value="pastel">Pastel</option>
+                    <option value="viridis">Viridis</option>
+                    <option value="plasma">Plasma</option>
+                    <option value="inferno">Inferno</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="chartTitle" class="form-label">Chart Title (Optional):</label>
+                  <input type="text" class="form-control" id="chartTitle" placeholder="Enter chart title">
+                </div>
+                <div class="mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="showTrendline">
+                    <label class="form-check-label" for="showTrendline">
+                      Show Trendline
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="showLabels">
+                    <label class="form-check-label" for="showLabels">
+                      Show Data Labels
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="useAnimation" checked>
+                    <label class="form-check-label" for="useAnimation">
+                      Use Animation
+                    </label>
+                  </div>
+                </div>
+                <div class="d-grid gap-2">
+                  <button type="button" id="generateCustomVizBtn" class="btn btn-primary">
+                    <i class="fas fa-chart-line me-2"></i>Generate Chart
+                  </button>
+                  <button type="button" id="addToDashboardBtn" class="btn btn-outline-primary" disabled>
+                    <i class="fas fa-plus me-2"></i>Add to Dashboard
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Chart Preview</h5>
+              <div>
+                <button id="exportPngBtn" class="btn btn-sm btn-outline-secondary">
+                  <i class="fas fa-file-image me-1"></i>PNG
+                </button>
+                <button id="exportSvgBtn" class="btn btn-sm btn-outline-secondary ms-1">
+                  <i class="fas fa-file-code me-1"></i>SVG
+                </button>
+                <button id="exportCsvBtn" class="btn btn-sm btn-outline-secondary ms-1">
+                  <i class="fas fa-file-csv me-1"></i>CSV
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="customVizResult" class="custom-viz-result">
+                <div class="custom-viz-placeholder">
+                  <i class="fas fa-chart-line fa-3x mb-3 text-muted"></i>
+                  <h4>Ready to Create</h4>
+                  <p class="text-muted">Configure your chart options and click Generate to create a custom visualization.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div class="tab-pane fade" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-th-large me-2"></i>Custom Dashboard</h5>
+              <div>
+                <button id="saveDashboardBtn" class="btn btn-sm btn-outline-primary me-2">
+                  <i class="fas fa-save me-1"></i>Save Dashboard
+                </button>
+                <button id="resetDashboardBtn" class="btn btn-sm btn-outline-danger">
+                  <i class="fas fa-trash me-1"></i>Reset Dashboard
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="dashboardEmptyState" class="dashboard-empty-state">
+                <i class="fas fa-th-large fa-3x mb-3 text-muted"></i>
+                <h4>Dashboard Empty</h4>
+                <p class="text-muted">Create custom visualizations and add them to your dashboard to build a comprehensive view of your data.</p>
+                <button class="btn btn-primary" id="gotoCustomVizBtn">
+                  <i class="fas fa-pencil-ruler me-2"></i>Create a Visualization
+                </button>
+              </div>
+              <div id="dashboardGrid" class="dashboard-grid" style="display: none;">
+                <!-- Dashboard items will be added here by JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Visualization Explanation Modal -->
+<div class="modal fade" id="vizExplanationModal" tabindex="-1" aria-labelledby="vizExplanationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="vizExplanationModalLabel">Visualization Explanation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="vizExplanationContent">
+          <div class="mb-3">
+            <h6 class="explanation-heading"><i class="fas fa-info-circle me-2"></i>What does this visualization show?</h6>
+            <p id="vizExplanation" class="explanation-text"></p>
+          </div>
+          <div class="mb-3">
+            <h6 class="explanation-heading"><i class="fas fa-book-reader me-2"></i>How to interpret this chart</h6>
+            <p id="vizInterpretation" class="explanation-text"></p>
+          </div>
+          <div>
+            <h6 class="explanation-heading"><i class="fas fa-lightbulb me-2"></i>Key insights</h6>
+            <ul id="vizInsights" class="explanation-insights"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay d-none">
+  <div class="spinner-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="loading-text">Processing data...</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Plotly.js for visualization -->
+<script src="https://cdn.plot.ly/plotly-2.18.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/visualization.js') }}"></script>
+<script>
+  // Additional initialization when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize page-specific elements
+    const gotoCustomVizBtn = document.getElementById('gotoCustomVizBtn');
+    if (gotoCustomVizBtn) {
+      gotoCustomVizBtn.addEventListener('click', function() {
+        document.getElementById('custom-viz-tab').click();
+      });
+    }
+    
+    // Function to show visualization explanation modal
+    window.showVizExplanation = function(title, explanation, interpretation, insights) {
+      const modal = document.getElementById('vizExplanationModal');
+      const modalTitle = document.getElementById('vizExplanationModalLabel');
+      const explanationEl = document.getElementById('vizExplanation');
+      const interpretationEl = document.getElementById('vizInterpretation');
+      const insightsEl = document.getElementById('vizInsights');
+      
+      modalTitle.textContent = title;
+      explanationEl.textContent = explanation;
+      interpretationEl.textContent = interpretation;
+      
+      // Add insights as list items
+      insightsEl.innerHTML = '';
+      if (Array.isArray(insights)) {
+        insights.forEach(insight => {
+          const li = document.createElement('li');
+          li.textContent = insight;
+          insightsEl.appendChild(li);
+        });
+      }
+      
+      // Show modal
+      const explanationModal = new bootstrap.Modal(modal);
+      explanationModal.show();
+    };
+    
+    // Function to show loading overlay
+    window.showLoading = function(show) {
+      const overlay = document.getElementById('loadingOverlay');
+      if (show) {
+        overlay.classList.remove('d-none');
+      } else {
+        overlay.classList.add('d-none');
+      }
+    };
+    
+    // Function to show error message
+    window.showError = function(message) {
+      alert(message); // Simple alert for now, could be enhanced with toast notifications
+      console.error(message);
+    };
+    
+    // Function to detect column type
+    window.detectColumnType = function(columnName) {
+      // This is a simplistic approach, would be better to use actual data types
+      const lowerName = columnName.toLowerCase();
+      
+      // Date columns often contain date-related words
+      if (lowerName.includes('date') || lowerName.includes('time') || lowerName.includes('year')) {
+        return 'date';
+      }
+      
+      // Categorical columns often include these words
+      if (lowerName.includes('category') || lowerName.includes('type') || 
+          lowerName.includes('name') || lowerName.includes('id') || 
+          lowerName.includes('status') || lowerName.includes('gender')) {
+        return 'categorical';
+      }
+      
+      // Numeric columns often include these words
+      if (lowerName.includes('count') || lowerName.includes('amount') || 
+          lowerName.includes('price') || lowerName.includes('value') ||
+          lowerName.includes('age') || lowerName.includes('score') || 
+          lowerName.includes('rate') || lowerName.includes('number')) {
+        return 'numeric';
+      }
+      
+      // Default to categorical if uncertain
+      return 'categorical';
+    };
+    
+    // Function to fetch dataset data
+    window.fetchDatasetData = function(datasetId, limit = 1000) {
+      showLoading(true);
+      
+      fetch(`/api/dataset/${datasetId}/data?limit=${limit}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch dataset data');
+          }
+          return response.json();
+        })
+        .then(data => {
+          window.datasetData = data;
+          console.log(`Loaded ${data.length} rows of data`);
+          
+          // Populate feature selection based on data
+          populateFeatureSelection();
+          populateAnomalyFeatures();
+          populateChartFeatures();
+          
+          showLoading(false);
+          
+          // Generate automatic visualizations if on that tab
+          if (document.getElementById('auto-viz-tab').classList.contains('active')) {
+            generateAutoVisualizations();
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching dataset data:', error);
+          showError('Failed to fetch dataset data: ' + error.message);
+          showLoading(false);
+        });
+    };
+  });
+</script>
+{% endblock %} 

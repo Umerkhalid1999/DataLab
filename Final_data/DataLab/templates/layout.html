@@ -1,0 +1,163 @@
+<!-- Updated portions of layout.html to apply consistent colors -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataLab</title>
+    <!-- This section replaces the original :root CSS variables -->
+    <style>
+        :root {
+            /* Primary Colors */
+            --primary-50: #EFF6FF;
+            --primary-100: #DBEAFE;
+            --primary-200: #BFDBFE;
+            --primary-300: #93C5FD;
+            --primary-400: #60A5FA;
+            --primary-500: #3B82F6;  /* Main primary color */
+            --primary-600: #2563EB;
+            --primary-700: #1D4ED8;
+            --primary-800: #1E40AF;
+            --primary-900: #1E3A8A;
+
+            /* Neutrals */
+            --neutral-50: #F9FAFB;
+            --neutral-100: #F3F4F6;
+            --neutral-200: #E5E7EB;
+            --neutral-300: #D1D5DB;
+            --neutral-400: #9CA3AF;
+            --neutral-500: #6B7280;
+            --neutral-600: #4B5563;
+            --neutral-700: #374151;
+            --neutral-800: #1F2937;
+            --neutral-900: #111827;
+
+            /* Success */
+            --success-50: #ECFDF5;
+            --success-100: #D1FAE5;
+            --success-500: #10B981;
+            --success-600: #059669;
+
+            /* Warning */
+            --warning-50: #FFFBEB;
+            --warning-100: #FEF3C7;
+            --warning-500: #F59E0B;
+            --warning-600: #D97706;
+
+            /* Danger */
+            --danger-50: #FEF2F2;
+            --danger-100: #FEE2E2;
+            --danger-500: #EF4444;
+            --danger-600: #DC2626;
+
+            /* Info */
+            --info-50: #EFF6FF;
+            --info-100: #DBEAFE;
+            --info-500: #3B82F6;
+            --info-600: #2563EB;
+
+            /* Other */
+            --white: #FFFFFF;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Update header background to the new primary color */
+        header {
+            background-color: var(--primary-600);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Update button colors */
+        .btn {
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-600);
+            border-color: var(--primary-600);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-700);
+            border-color: var(--primary-700);
+        }
+
+        /* Update assistant trigger button */
+        .assistant-trigger {
+            background-color: var(--primary-600);
+        }
+
+        .assistant-trigger:hover {
+            background-color: var(--primary-700);
+        }
+
+        /* Update panel header */
+        .panel-header {
+            background-color: var(--primary-600);
+        }
+
+        /* Update send button */
+        button.send-button {
+            background: var(--primary-600);
+        }
+
+        button.send-button:hover {
+            background: var(--primary-700);
+        }
+
+        /* Update card styles */
+        .card {
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: none;
+        }
+
+        .card-title {
+            color: var(--primary-700);
+        }
+
+        /* Update form control focus state */
+        .form-control:focus {
+            border-color: var(--primary-400);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        /* Links */
+        a {
+            color: var(--primary-600);
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--primary-700);
+        }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+
+<!-- Main body changes - background color update -->
+<body style="background-color: var(--neutral-50);">
+    <!-- Rest of body content remains the same -->
+</body>
+
+<!-- Update Jupyter trigger styling (changed from orange to primary) -->
+<button class="jupyter-trigger" id="jupyter-trigger" aria-label="Open Jupyter Notebook" style="position: fixed; bottom: 90px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background-color: var(--primary-600); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 999; transition: all 0.3s ease; border: none;">
+    <!-- SVG content remains the same -->
+</button>
+
+<!-- Update the Jupyter header style -->
+<div class="jupyter-header" id="jupyter-header" style="padding: 16px; background-color: var(--primary-600); color: white; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+    <!-- Header content remains the same -->
+</div>
+
+<!-- Update the launch notebook button -->
+<button id="launch-notebook" style="background-color: var(--primary-600); color: white; padding: 10px 16px; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: background-color 0.2s;">Launch Notebook</button>
+
+<!-- Update toggle tips button -->
+<button id="toggle-tips" style="background-color: var(--primary-600); color: white; border: none; border-radius: 4px; padding: 5px 10px; font-size: 0.8rem; cursor: pointer; z-index: 1001; opacity: 0.7; transition: opacity 0.2s;">Show Tips</button>

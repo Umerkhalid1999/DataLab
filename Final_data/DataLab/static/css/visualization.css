@@ -1,0 +1,456 @@
+/* DataLab Visualization Module Styles */
+
+/* General Visualization Styles */
+.page-title {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.dataset-info-card {
+  background: linear-gradient(to right, #f8f9fa, #ffffff);
+  border-left: 4px solid #4e73df;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.dataset-icon {
+  font-size: 2rem;
+  color: #4e73df;
+}
+
+.viz-tabs .nav-link {
+  padding: 0.7rem 1.2rem;
+  border-radius: 0;
+  font-weight: 500;
+  color: #6c757d;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.viz-tabs .nav-link.active {
+  color: #4e73df;
+  background-color: transparent;
+  border-bottom: 2px solid #4e73df;
+}
+
+.viz-tabs .nav-link:hover:not(.active) {
+  color: #4e73df;
+  border-bottom: 2px solid #e0e7ff;
+}
+
+.viz-config-card {
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.viz-config-card .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 0.75rem 1rem;
+}
+
+.chart-container {
+  width: 100%;
+  height: 600px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.viz-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  z-index: 10;
+}
+
+.viz-loading p {
+  margin-top: 1rem;
+  color: #4e73df;
+  font-weight: 500;
+}
+
+/* Auto-Visualization Styles */
+#autoVizContainer .viz-card {
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 400px;
+  margin-bottom: 1.5rem;
+}
+
+#autoVizContainer .viz-card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+}
+
+#autoVizContainer .viz-card-header {
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+#autoVizContainer .viz-card-body {
+  padding: 0;
+  height: 330px;
+}
+
+#autoVizContainer .viz-card-footer {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #e9ecef;
+  background-color: #ffffff;
+}
+
+.viz-explanation-btn {
+  background: none;
+  border: none;
+  color: #4e73df;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+/* Correlation Analysis Styles */
+.correlation-heatmap {
+  width: 100%;
+  height: 600px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.correlation-viz {
+  width: 100%;
+  height: 100%;
+}
+
+.insights-container {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.correlation-insight {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.correlation-insight:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.correlation-strength {
+  font-weight: 600;
+}
+
+.strength-high {
+  color: #e74a3b;
+}
+
+.strength-medium {
+  color: #f6c23e;
+}
+
+.strength-low {
+  color: #36b9cc;
+}
+
+/* Anomaly Detection Styles */
+.anomaly-container {
+  width: 100%;
+}
+
+.anomaly-chart {
+  width: 100%;
+  height: 500px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.stat-card {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  height: 100%;
+}
+
+.stat-title {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #4e73df;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.details-container {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.anomaly-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.anomaly-item:last-child {
+  border-bottom: none;
+}
+
+.anomaly-value {
+  font-weight: 600;
+  color: #e74a3b;
+}
+
+/* Custom Visualization Styles */
+.custom-viz-container {
+  width: 100%;
+}
+
+/* Custom Visualization specific styles for larger, more readable charts */
+#customVizResult {
+  width: 100%;
+  min-height: 700px;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+#customVizResult .plotly-graph-div {
+  width: 100% !important;
+  height: 650px !important;
+}
+
+#customVizResult canvas {
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 600px !important;
+}
+
+/* Make chart text larger and more readable */
+#customVizResult .plotly .legendtext,
+#customVizResult .plotly .xtitle,
+#customVizResult .plotly .ytitle,
+#customVizResult .plotly .axis text {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+#customVizResult .plotly .title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+
+.viz-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #adb5bd;
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+/* Dashboard Styles */
+.dashboard-container {
+  width: 100%;
+  min-height: 600px;
+  position: relative;
+}
+
+.dashboard-empty-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  color: #6c757d;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  color: #e9ecef;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(300px, auto);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.dashboard-item {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-item-header {
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-item-body {
+  flex: 1;
+  padding: 0;
+  position: relative;
+}
+
+.dashboard-item.large {
+  grid-column: span 2;
+}
+
+/* Visualization Tooltip */
+.viz-tooltip {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  display: none;
+}
+
+.viz-tooltip.show {
+  display: block;
+  animation: fadeIn 0.2s;
+}
+
+.viz-tooltip-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viz-tooltip-body {
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.viz-explanation, .viz-interpretation {
+  margin-bottom: 1rem;
+}
+
+.viz-insights ul {
+  padding-left: 1.5rem;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-item.large {
+    grid-column: span 1;
+  }
+  
+  .chart-container {
+    height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .viz-tabs .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .chart-container {
+    height: 450px;
+  }
+  
+  #customVizResult {
+    min-height: 500px;
+    padding: 1rem;
+  }
+  
+  #customVizResult .plotly-graph-div {
+    height: 450px !important;
+  }
+}
+
+/* Utility Classes */
+.viz-info-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #e0e7ff;
+  color: #4e73df;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+  cursor: pointer;
+}
+
+.drag-handle {
+  cursor: move;
+  color: #adb5bd;
+} 

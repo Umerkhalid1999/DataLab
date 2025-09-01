@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="text-align: center; padding: 40px 20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 80px; height: 80px; margin-bottom: 20px;">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        <h1 style="font-size: 2.5rem; margin-bottom: 10px; color: #7C3AED;">DataLab</h1>
+        <p style="font-size: 1.1rem; color: #6B7280; max-width: 600px; margin: 0 auto 30px;">
+            Your all-in-one click Solution for data analysis, visualization, and machine learning!
+        </p>
+        <a href="{{ url_for('login') }}" class="btn" style="font-size: 1.1rem; padding: 12px 30px;">Get Started</a>
+    </div>
+</div>
+
+<div style="margin-top: 50px;">
+    <h2 style="text-align: center; margin-bottom: 30px; color: #4B5563;">Key Features</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+        <div class="card" style="padding: 30px;">
+            <div style="margin-bottom: 15px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 40px; height: 40px;">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.29 7 12 12 20.71 7"></polyline>
+                    <line x1="12" y1="22" x2="12" y2="12"></line>
+                </svg>
+            </div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 10px; color: #374151;">Data Analysis</h3>
+            <p style="color: #6B7280;">Advanced tools for data cleaning, processing, and analysis with integrated Jupyter notebooks.</p>
+        </div>
+        
+        <div class="card" style="padding: 30px;">
+            <div style="margin-bottom: 15px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 40px; height: 40px;">
+                    <path d="M3 3v18h18"></path>
+                    <path d="M18 17V9"></path>
+                    <path d="M13 17V5"></path>
+                    <path d="M8 17v-3"></path>
+                </svg>
+            </div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 10px; color: #374151;">Visualization</h3>
+            <p style="color: #6B7280;">Create beautiful, interactive visualizations to gain insights from your data.</p>
+        </div>
+        
+        <div class="card" style="padding: 30px;">
+            <div style="margin-bottom: 15px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 40px; height: 40px;">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            </div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 10px; color: #374151;">AI Assistant</h3>
+            <p style="color: #6B7280;">Get help with your data tasks using our integrated AI assistant powered by Mistral.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

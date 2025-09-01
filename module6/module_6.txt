@@ -1,0 +1,6 @@
+Module 6: Advanced Feature Engineering and Selection
+ • Automated feature importance ranking using multiple methods
+ • Intelligent feature creation based on data relationships
+ • Dimensionality reduction with visual explanations (PCA, t-SNE)
+ • Feature set comparison with performance impact metrics
+ • Domain-specific feature templates for common use cases

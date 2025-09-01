@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-item { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .success { border-color: #28a745; }
+        .error { border-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>DataLab Loading Fix Test</h1>
+    <p>This page tests if the blinking loading loop issue has been resolved.</p>
+    
+    <div class="test-item">
+        <strong>✅ Fixed Issues:</strong>
+        <ul>
+            <li>Added proper loading state management</li>
+            <li>Prevented Firebase authentication redirect loops</li>
+            <li>Added fallback timeouts to prevent infinite loading</li>
+            <li>Improved error handling for authentication</li>
+            <li>Added loading indicator instead of blank/blinking page</li>
+        </ul>
+    </div>
+
+    <div class="test-item success">
+        <strong>🎯 How to Test:</strong>
+        <ol>
+            <li>Open <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></li>
+            <li>You should see a smooth loading spinner instead of blinking</li>
+            <li>The page should load within 1-5 seconds</li>
+            <li>No infinite redirects between login and dashboard</li>
+            <li>Proper error messages if Firebase fails to load</li>
+        </ol>
+    </div>
+
+    <div class="test-item">
+        <strong>🔧 Changes Made:</strong>
+        <ul>
+            <li><code>base.html</code> - Added loading indicator and fixed redirect logic</li>
+            <li><code>dashboard.js</code> - Improved authentication state checking</li>
+            <li><code>login.js</code> - Added Firebase readiness check</li>
+            <li><code>style.css</code> - Added loading spinner styles</li>
+        </ul>
+    </div>
+
+    <script>
+        // Auto-open main application after 2 seconds
+        setTimeout(() => {
+            if (confirm('Would you like to open the main DataLab application to test the fix?')) {
+                window.open('http://localhost:5000', '_blank');
+            }
+        }, 2000);
+    </script>
+</body>
+</html> 

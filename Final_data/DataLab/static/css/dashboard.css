@@ -1,0 +1,557 @@
+/* Override Bootstrap container class to allow our custom grid layout */
+.container {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Fix for Bootstrap container-fluid which might be adding padding */
+.container-fluid {
+    padding: 0;
+}
+
+/* Variables for theming */
+:root {
+    --primary: #4361ee;
+    --secondary: #3f37c9;
+    --success: #4cc9f0;
+    --info: #4895ef;
+    --warning: #f72585;
+    --danger: #e63946;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --gray: #e9ecef;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+/* Sidebar Styles - MODIFIED FOR CONSISTENT DARK THEME */
+.sidebar {
+    background-color: #1F2937 !important; /* Match var(--neutral-800) from style.css */
+    color: white !important;
+    padding: 20px;
+    transition: var(--transition);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+}
+
+.sidebar * {
+    color: #D1D5DB !important;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.sidebar-header h2 {
+    font-size: 1.2rem;
+    margin-left: 10px;
+    margin-bottom: 0;
+    color: white !important;
+}
+
+.sidebar-header i {
+    color: white !important;
+}
+
+.nav-menu {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+.nav-item {
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.nav-item a {
+    display: flex;
+    align-items: center;
+    color: #D1D5DB !important; /* Match var(--neutral-300) from style.css */
+    text-decoration: none;
+    padding: 12px 15px;
+    border-radius: var(--border-radius);
+}
+
+.nav-item.active a, .nav-item a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white !important;
+}
+
+.nav-item a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+    color: #D1D5DB !important;
+}
+
+.nav-item.active a i, .nav-item a:hover i {
+    color: white !important;
+}
+
+/* Fix for vertical sidebar in Image 1 */
+body > .sidebar > a,
+body > .sidebar > i,
+body > nav.sidebar > a,
+body > nav.sidebar > i,
+.container > .sidebar > a,
+.container > .sidebar > i {
+    color: white !important;
+    background-color: transparent !important;
+}
+
+/* Main Content Styles */
+.main-content {
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #f5f7fa;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.header-title h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.header-title p {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+.theme-selector {
+    display: flex;
+    align-items: center;
+}
+
+.theme-selector select {
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray);
+    background-color: white;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+/* Dashboard Content Grid */
+.dashboard-content {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.dashboard-content > div {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 20px;
+}
+
+/* File Upload Section */
+.upload-section {
+    grid-column: span 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    border: 2px dashed var(--primary);
+    border-radius: var(--border-radius);
+    background-color: rgba(67, 97, 238, 0.05);
+    position: relative;
+    transition: var(--transition);
+}
+
+.upload-section.highlight {
+    background-color: rgba(67, 97, 238, 0.1);
+    border-color: var(--secondary);
+}
+
+.upload-section h3 {
+    margin-bottom: 15px;
+    color: var(--primary);
+}
+
+.file-upload {
+    width: 100%;
+    max-width: 300px;
+    position: relative;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.file-upload-input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-upload-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.file-upload-btn:hover {
+    background-color: var(--secondary);
+}
+
+.file-upload-btn i {
+    margin-right: 8px;
+}
+
+.supported-formats {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 10px;
+}
+
+.upload-status {
+    margin-top: 15px;
+    min-height: 30px;
+}
+
+.upload-success {
+    color: var(--success);
+    display: flex;
+    align-items: center;
+}
+
+.upload-error {
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+}
+
+.upload-success i, .upload-error i {
+    margin-right: 5px;
+}
+
+/* Data Preview Section */
+.data-preview {
+    grid-column: span 3;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gray);
+}
+
+.section-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    background-color: white;
+    border: 1px solid var(--gray);
+    border-radius: var(--border-radius);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn:hover {
+    background-color: var(--gray);
+}
+
+.btn i {
+    margin-right: 5px;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    text-align: center;
+    color: #6c757d;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Data Profile, Quality, Stats, Insights Sections */
+.data-profile, .data-quality {
+    grid-column: span 1;
+}
+
+.summary-stats, .initial-insights {
+    grid-column: span 3;
+}
+
+/* Data Table Styles */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.data-table th, .data-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--gray);
+}
+
+.data-table th {
+    background-color: var(--light);
+    font-weight: 600;
+}
+
+.data-table tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.missing-value {
+    color: var(--danger);
+    font-style: italic;
+}
+
+/* Quality Score Visualization */
+.quality-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.score-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    background: conic-gradient(
+        var(--primary) 0% calc(var(--quality-score) * 1%),
+        var(--gray) calc(var(--quality-score) * 1%) 100%
+    );
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.score-circle::before {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: white;
+}
+
+.score-circle span {
+    position: relative;
+    z-index: 1;
+    color: var(--dark);
+}
+
+.score-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.quality-details {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.quality-item {
+    text-align: center;
+    padding: 10px;
+    flex: 1;
+    min-width: 80px;
+}
+
+.quality-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.quality-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Stats Section Styling */
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.stats-section {
+    margin-bottom: 10px;
+}
+
+.stats-section h4 {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--gray);
+}
+
+.stats-card {
+    background-color: var(--light);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.stats-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.stats-item {
+    text-align: center;
+    padding: 5px;
+}
+
+.stats-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.stats-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.category-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.category-name {
+    font-size: 0.9rem;
+}
+
+.category-count {
+    font-weight: 600;
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+    .container {
+        grid-template-columns: 200px 1fr;
+    }
+
+    .dashboard-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .data-profile, .data-quality {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        height: auto;
+        min-height: unset;
+    }
+
+    .sidebar-header {
+        justify-content: space-between;
+    }
+
+    .nav-menu {
+        display: none;
+        margin-top: 15px;
+    }
+
+    .nav-menu.show {
+        display: block;
+    }
+
+    .dashboard-content {
+        grid-template-columns: 1fr;
+    }
+
+    .data-profile, .data-quality {
+        grid-column: span 1;
+    }
+}
+
+
+
+/* Upload success message styling */
+.alert-success .btn {
+    margin: 0.25rem;
+}
+
+/* Dataset card visualization button styling */
+.dataset-card .card-footer .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: none;
+}
+
+.dataset-card .card-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+}

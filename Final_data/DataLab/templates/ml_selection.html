@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Model Recommender - DataLab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ml_selection.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Back to Dashboard Button -->
+    <a href="/dashboard" class="back-to-dashboard">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-brain"></i>
+                <span>ML Recommender Pro</span>
+            </div>
+            <div class="nav-status" id="navStatus">
+                <span class="status-indicator"></span>
+                <span class="status-text">Ready</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1>Professional ML Model Recommender</h1>
+                <p>Advanced machine learning model selection with GPT-powered insights and hyperparameter optimization</p>
+            </div>
+        </div>
+
+        {% if dataset %}
+        <div class="upload-card">
+            <div class="card-header">
+                <i class="fas fa-database"></i>
+                <h3>Dataset Information</h3>
+            </div>
+            <div class="dataset-details">
+                <div class="detail-item">
+                    <i class="fas fa-file-csv"></i>
+                    <div class="detail-content">
+                        <strong>{{ dataset.name }}</strong>
+                        <span>Dataset ID: {{ dataset.id }}</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-calendar"></i>
+                    <div class="detail-content">
+                        <strong>Upload Date</strong>
+                        <span>{{ dataset.created_at or dataset.upload_date or 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-table"></i>
+                    <div class="detail-content">
+                        <strong>Dimensions</strong>
+                        <span>{{ dataset.rows or 0 }} rows × {{ dataset.columns or 0 }} columns</span>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="analyze-btn" onclick="analyzeDataset({{ dataset.id }})">
+                <i class="fas fa-cogs"></i> Analyze Dataset
+            </button>
+        </div>
+        {% else %}
+        <div class="upload-card">
+            <div class="card-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>No Dataset Selected</h3>
+            </div>
+            <div class="no-dataset-message">
+                <i class="fas fa-database"></i>
+                <p>Please select a dataset from your DataLab dashboard to analyze.</p>
+                <a href="/dashboard" class="analyze-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="loading" class="loading-overlay hidden">
+            <div class="loading-content">
+                <div class="neural-network">
+                    <div class="layer input-layer">
+                        <div class="neuron"></div>
+                        <div class="neuron"></div>
+                        <div class="neuron"></div>
+                        <div class="neuron"></div>
+                    </div>
+                    <div class="layer hidden-layer">
+                        <div class="neuron"></div>
+                        <div class="neuron"></div>
+                        <div class="neuron"></div>
+                    </div>
+                    <div class="layer output-layer">
+                        <div class="neuron"></div>
+                    </div>
+                    <svg class="connections">
+                        <line class="connection" x1="80" y1="30" x2="200" y2="40"></line>
+                        <line class="connection" x1="80" y1="60" x2="200" y2="40"></line>
+                        <line class="connection" x1="80" y1="90" x2="200" y2="70"></line>
+                        <line class="connection" x1="80" y1="120" x2="200" y2="70"></line>
+                        <line class="connection" x1="80" y1="30" x2="200" y2="100"></line>
+                        <line class="connection" x1="80" y1="60" x2="200" y2="100"></line>
+                        <line class="connection" x1="80" y1="90" x2="200" y2="100"></line>
+                        <line class="connection" x1="80" y1="120" x2="200" y2="100"></line>
+                        <line class="connection" x1="220" y1="40" x2="320" y2="70"></line>
+                        <line class="connection" x1="220" y1="70" x2="320" y2="70"></line>
+                        <line class="connection" x1="220" y1="100" x2="320" y2="70"></line>
+                    </svg>
+                </div>
+                <h3>Training ML Models</h3>
+                <p id="loadingText">Generating insights and recommendations...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="results-container hidden">
+            <div class="results-header">
+                <h2><i class="fas fa-trophy"></i> Best Model Recommendation</h2>
+                <div class="best-model-card" id="bestModelCard"></div>
+            </div>
+
+            <div class="analysis-grid">
+                <div class="analysis-card dataset-card">
+                    <div class="card-header">
+                        <i class="fas fa-database"></i>
+                        <h3>Dataset Overview</h3>
+                    </div>
+                    <div id="datasetStats" class="stats-container"></div>
+                </div>
+
+                <div class="analysis-card performance-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>Performance Comparison</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recommendations-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> All Model Results</h2>
+                </div>
+                <div id="modelCards" class="model-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating JupyterLite Button -->
+    <div id="jupyterButton" class="floating-jupyter-btn" onclick="openJupyterLite()" title="Open Python Notebook Environment">
+        <i class="fas fa-code"></i>
+        <span>Jupyter</span>
+    </div>
+
+    <!-- Hyperparameter Tuning Modal -->
+    <div id="tuningModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-sliders-h"></i> Hyperparameter Tuning</h3>
+                <button class="modal-close" onclick="closeTuningModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="tuningContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    {% if dataset %}
+    <script>
+    // Pass dataset info to JavaScript
+    window.datasetInfo = {
+        id: {{ dataset.id }},
+        name: "{{ dataset.name }}",
+        rows: {{ dataset.rows or 0 }},
+        columns: {{ dataset.columns or 0 }}
+    };
+
+    // DataLab-specific analyze function
+    function analyzeDataset(datasetId) {
+        if (!datasetId) {
+            console.error('No dataset ID provided');
+            return;
+        }
+        
+        showLoading();
+        updateNavStatus('Analyzing dataset...', 'analyzing');
+        
+        console.log('Starting ML analysis for dataset:', datasetId);
+        
+        // Use DataLab's ML analysis endpoint
+        fetch(`/ml/api/analyze/${datasetId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dataset_id: datasetId
+            })
+        })
+        .then(response => {
+            console.log('ML API Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('ML API Response data:', data);
+            hideLoading();
+            
+            if (data.dataset_analysis && data.recommendations) {
+                console.log('Displaying results...');
+                currentData = data;
+                displayResults(data);
+                updateNavStatus('Analysis complete', 'ready');
+            } else if (data.error) {
+                console.error('ML API Error:', data.error);
+                updateNavStatus('Error: ' + data.error, 'error');
+                showError(data.error);
+            } else {
+                console.error('Unexpected API response format:', data);
+                updateNavStatus('Error: Invalid response format', 'error');
+                showError('Invalid response format from server');
+            }
+        })
+        .catch(error => {
+            console.error('ML Analysis Error:', error);
+            hideLoading();
+            updateNavStatus('Error: ' + error.message, 'error');
+            showError('Analysis failed: ' + error.message);
+        });
+    }
+
+    // Open JupyterLite function
+    function openJupyterLite() {
+        try {
+            const jupyterWindow = window.open('/ml/jupyterlite', '_blank', 'width=1200,height=800,resizable=yes,scrollbars=yes');
+            
+            if (jupyterWindow) {
+                jupyterWindow.focus();
+                showNotification('JupyterLite opened! Upload your downloaded notebooks to start coding.', 'success');
+            } else {
+                showNotification('Please allow popups to open JupyterLite, or click "Python Notebook" in the sidebar.', 'warning');
+            }
+        } catch (error) {
+            console.error('Error opening JupyterLite:', error);
+            showNotification('Click "Python Notebook" in the sidebar to open JupyterLite.', 'info');
+        }
+    }
+
+    // Helper functions for status updates
+    function updateNavStatus(text, type) {
+        const statusText = document.querySelector('.status-text');
+        const statusIndicator = document.querySelector('.status-indicator');
+        
+        if (statusText) {
+            statusText.textContent = text;
+        }
+        
+        if (statusIndicator) {
+            statusIndicator.classList.remove('success', 'warning', 'error', 'analyzing', 'ready');
+            
+            if (type === 'success' || type === 'ready') {
+                statusIndicator.style.background = '#10b981';
+            } else if (type === 'warning' || type === 'analyzing') {
+                statusIndicator.style.background = '#f59e0b';
+            } else if (type === 'error') {
+                statusIndicator.style.background = '#ef4444';
+            }
+        }
+    }
+
+    function showError(message) {
+        const resultsContainer = document.getElementById('results');
+        resultsContainer.innerHTML = `
+            <div class="error-container">
+                <div class="error-card">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Analysis Failed</h3>
+                    <p>${message}</p>
+                    <button onclick="location.reload()" class="retry-btn">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        `;
+        resultsContainer.classList.remove('hidden');
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('ML Selection page loaded');
+        if (window.datasetInfo) {
+            console.log('Dataset loaded:', window.datasetInfo);
+        }
+    });
+    </script>
+    {% endif %}
+</body>
+</html>

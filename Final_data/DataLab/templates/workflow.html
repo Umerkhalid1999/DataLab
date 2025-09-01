@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow Management - DataLab{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="workflow-container">
+    <!-- Header Section -->
+    <div class="header-section">
+        <div class="header-content">
+            <h1><i class="fas fa-project-diagram"></i> Workflow Management</h1>
+            <p class="subtitle">Create, execute, and share comprehensive data preprocessing pipelines</p>
+            <div class="dataset-info">
+                <span class="dataset-name">{{ dataset.name }}</span>
+                <span class="dataset-meta">{{ dataset.rows }} rows × {{ dataset.columns }} columns</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-navigation">
+        <button class="tab-btn active" data-tab="builder">
+            <i class="fas fa-hammer"></i> Pipeline Builder
+        </button>
+        <button class="tab-btn" data-tab="execution">
+            <i class="fas fa-play"></i> Execution
+        </button>
+        <button class="tab-btn" data-tab="export">
+            <i class="fas fa-download"></i> Export & Share
+        </button>
+        <button class="tab-btn" data-tab="version">
+            <i class="fas fa-code-branch"></i> Version Control
+        </button>
+        <button class="tab-btn" data-tab="documentation">
+            <i class="fas fa-file-alt"></i> Documentation
+        </button>
+    </div>
+
+    <!-- Pipeline Builder Tab -->
+    <div class="tab-content" id="builder-tab">
+        <div class="builder-layout">
+            <!-- Left Panel - Pipeline Steps -->
+            <div class="left-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-list"></i> Available Steps</h3>
+                        <p>Drag and drop steps to build your pipeline</p>
+                    </div>
+                    
+                    <div class="step-categories">
+                        <div class="category" data-category="cleaning">
+                            <div class="category-header">
+                                <i class="fas fa-broom"></i> Data Cleaning
+                            </div>
+                            <div class="category-steps">
+                                <div class="step-item" draggable="true" data-step-type="missing_value_handling">
+                                    <i class="fas fa-fill-drip"></i>
+                                    <span>Missing Values</span>
+                                </div>
+                                <div class="step-item" draggable="true" data-step-type="outlier_removal">
+                                    <i class="fas fa-search-minus"></i>
+                                    <span>Outlier Removal</span>
+                                </div>
+                                <div class="step-item" draggable="true" data-step-type="data_cleaning">
+                                    <i class="fas fa-trash-alt"></i>
+                                    <span>Remove Duplicates</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="category" data-category="transformation">
+                            <div class="category-header">
+                                <i class="fas fa-exchange-alt"></i> Transformation
+                            </div>
+                            <div class="category-steps">
+                                <div class="step-item" draggable="true" data-step-type="scaling">
+                                    <i class="fas fa-balance-scale"></i>
+                                    <span>Feature Scaling</span>
+                                </div>
+                                <div class="step-item" draggable="true" data-step-type="encoding">
+                                    <i class="fas fa-code"></i>
+                                    <span>Categorical Encoding</span>
+                                </div>
+                                <div class="step-item" draggable="true" data-step-type="feature_creation">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span>Feature Creation</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="category" data-category="selection">
+                            <div class="category-header">
+                                <i class="fas fa-filter"></i> Feature Selection
+                            </div>
+                            <div class="category-steps">
+                                <div class="step-item" draggable="true" data-step-type="feature_selection">
+                                    <i class="fas fa-funnel-dollar"></i>
+                                    <span>Feature Selection</span>
+                                </div>
+                                <div class="step-item" draggable="true" data-step-type="dimensionality_reduction">
+                                    <i class="fas fa-compress-alt"></i>
+                                    <span>Dimensionality Reduction</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Center Panel - Pipeline Canvas -->
+            <div class="center-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-project-diagram"></i> Pipeline Canvas</h3>
+                        <div class="canvas-controls">
+                            <button id="save-pipeline-btn" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Pipeline
+                            </button>
+                            <button id="clear-pipeline-btn" class="btn btn-secondary">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pipeline-info">
+                        <div class="form-group">
+                            <label for="pipeline-name">Pipeline Name:</label>
+                            <input type="text" id="pipeline-name" class="form-control" 
+                                   placeholder="Enter pipeline name..." value="My Preprocessing Pipeline">
+                        </div>
+                        <div class="form-group">
+                            <label for="pipeline-description">Description:</label>
+                            <textarea id="pipeline-description" class="form-control" rows="2" 
+                                     placeholder="Describe your pipeline...">Comprehensive data preprocessing workflow</textarea>
+                        </div>
+                    </div>
+                    
+                    <div id="pipeline-canvas" class="pipeline-canvas">
+                        <div class="drop-zone">
+                            <i class="fas fa-arrow-down"></i>
+                            <p>Drop pipeline steps here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Step Configuration -->
+            <div class="right-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-cogs"></i> Step Configuration</h3>
+                        <p>Configure the selected step</p>
+                    </div>
+                    
+                    <div id="step-config" class="step-config">
+                        <div class="no-selection">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Select a step to configure</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Execution Tab -->
+    <div class="tab-content" id="execution-tab" style="display: none;">
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-play"></i> Pipeline Execution</h3>
+                <p>Execute your preprocessing pipelines and monitor results</p>
+            </div>
+            
+            <div class="execution-controls">
+                <div class="form-group">
+                    <label for="execution-pipeline">Select Pipeline:</label>
+                    <select id="execution-pipeline" class="form-control">
+                        <option value="">Select a pipeline to execute...</option>
+                    </select>
+                </div>
+                
+                <button id="execute-pipeline-btn" class="btn btn-success">
+                    <i class="fas fa-play"></i> Execute Pipeline
+                </button>
+            </div>
+            
+            <div id="execution-results" class="execution-results" style="display: none;">
+                <div class="results-header">
+                    <h4><i class="fas fa-chart-line"></i> Execution Results</h4>
+                    <div class="execution-status"></div>
+                </div>
+                
+                <div class="execution-metrics">
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-table"></i></div>
+                        <div class="metric-info">
+                            <div class="metric-label">Input Shape</div>
+                            <div class="metric-value" id="input-shape">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-arrows-alt"></i></div>
+                        <div class="metric-info">
+                            <div class="metric-label">Output Shape</div>
+                            <div class="metric-value" id="output-shape">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-clock"></i></div>
+                        <div class="metric-info">
+                            <div class="metric-label">Execution Time</div>
+                            <div class="metric-value" id="execution-time">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="metric-info">
+                            <div class="metric-label">Status</div>
+                            <div class="metric-value" id="execution-status">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="execution-log">
+                    <h5><i class="fas fa-list"></i> Execution Log</h5>
+                    <div id="log-container" class="log-container"></div>
+                </div>
+                
+                <div class="output-preview">
+                    <h5><i class="fas fa-eye"></i> Output Preview</h5>
+                    <div id="output-table-container" class="table-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export & Share Tab -->
+    <div class="tab-content" id="export-tab" style="display: none;">
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-download"></i> Export & Share</h3>
+                <p>Export pipelines as Jupyter notebooks and share with others</p>
+            </div>
+            
+            <div class="export-options">
+                <div class="form-group">
+                    <label for="export-pipeline">Select Pipeline:</label>
+                    <select id="export-pipeline" class="form-control">
+                        <option value="">Select a pipeline to export...</option>
+                    </select>
+                </div>
+                
+                <div class="export-types">
+                    <div class="export-card">
+                        <div class="export-icon">
+                            <i class="fab fa-python"></i>
+                        </div>
+                        <div class="export-content">
+                            <h4>Jupyter Notebook</h4>
+                            <p>Export as executable Jupyter notebook with documentation</p>
+                            <button id="export-notebook-btn" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Notebook
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="export-card">
+                        <div class="export-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="export-content">
+                            <h4>Documentation Package</h4>
+                            <p>Complete documentation with HTML, Markdown, and configs</p>
+                            <button id="export-docs-btn" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Documentation
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="export-card">
+                        <div class="export-icon">
+                            <i class="fas fa-share-alt"></i>
+                        </div>
+                        <div class="export-content">
+                            <h4>Share Pipeline</h4>
+                            <p>Generate shareable link or export configuration</p>
+                            <button id="share-pipeline-btn" class="btn btn-success">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="share-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4>Share Pipeline</h4>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="share-options">
+                            <div class="share-option">
+                                <input type="radio" id="share-link" name="share-type" value="link" checked>
+                                <label for="share-link">
+                                    <i class="fas fa-link"></i> Generate Share Link
+                                </label>
+                            </div>
+                            <div class="share-option">
+                                <input type="radio" id="share-export" name="share-type" value="export">
+                                <label for="share-export">
+                                    <i class="fas fa-file-export"></i> Export Configuration
+                                </label>
+                            </div>
+                        </div>
+                        <div id="share-result" style="display: none;">
+                            <textarea id="share-content" class="form-control" rows="5" readonly></textarea>
+                            <button id="copy-share-btn" class="btn btn-secondary mt-2">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="generate-share-btn" class="btn btn-primary">Generate</button>
+                        <button class="btn btn-secondary modal-close">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Control Tab -->
+    <div class="tab-content" id="version-tab" style="display: none;">
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-code-branch"></i> Version Control</h3>
+                <p>Manage pipeline versions and track changes</p>
+            </div>
+            
+            <div class="version-controls">
+                <div class="form-group">
+                    <label for="version-pipeline">Select Pipeline:</label>
+                    <select id="version-pipeline" class="form-control">
+                        <option value="">Select a pipeline...</option>
+                    </select>
+                </div>
+                
+                <div class="version-actions">
+                    <button id="create-version-btn" class="btn btn-primary">
+                        <i class="fas fa-tag"></i> Create Version
+                    </button>
+                </div>
+            </div>
+            
+            <div id="version-history" class="version-history" style="display: none;">
+                <h4><i class="fas fa-history"></i> Version History</h4>
+                <div id="version-timeline" class="version-timeline"></div>
+            </div>
+            
+            <div id="version-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4>Create New Version</h4>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="version-notes">Version Notes:</label>
+                            <textarea id="version-notes" class="form-control" rows="4" 
+                                     placeholder="Describe what changed in this version..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="save-version-btn" class="btn btn-primary">Create Version</button>
+                        <button class="btn btn-secondary modal-close">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation Tab -->
+    <div class="tab-content" id="documentation-tab" style="display: none;">
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-file-alt"></i> Automated Documentation</h3>
+                <p>Generate comprehensive documentation for your preprocessing decisions</p>
+            </div>
+            
+            <div class="documentation-controls">
+                <div class="form-group">
+                    <label for="doc-pipeline">Select Pipeline:</label>
+                    <select id="doc-pipeline" class="form-control">
+                        <option value="">Select a pipeline to document...</option>
+                    </select>
+                </div>
+                
+                <button id="generate-docs-btn" class="btn btn-primary">
+                    <i class="fas fa-file-medical"></i> Generate Documentation
+                </button>
+            </div>
+            
+            <div id="documentation-preview" class="documentation-preview" style="display: none;">
+                <div class="doc-tabs">
+                    <button class="doc-tab-btn active" data-doc-tab="overview">Overview</button>
+                    <button class="doc-tab-btn" data-doc-tab="steps">Steps</button>
+                    <button class="doc-tab-btn" data-doc-tab="execution">Execution</button>
+                </div>
+                
+                <div class="doc-content">
+                    <div id="doc-overview" class="doc-tab-content">
+                        <div id="overview-content"></div>
+                    </div>
+                    
+                    <div id="doc-steps" class="doc-tab-content" style="display: none;">
+                        <div id="steps-content"></div>
+                    </div>
+                    
+                    <div id="doc-execution" class="doc-tab-content" style="display: none;">
+                        <div id="execution-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Processing...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden dataset info -->
+<script>
+    window.datasetInfo = {
+        id: {{ dataset.id }},
+        name: "{{ dataset.name }}",
+        rows: {{ dataset.rows }},
+        columns: {{ dataset.columns }}
+    };
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+{% endblock %}

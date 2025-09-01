@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JupyterLite - DataLab Python Environment</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --radius-md: 0.5rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        .jupyter-header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            position: relative;
+            height: 60px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .jupyter-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-indicator.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-indicator.loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-indicator.error {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .jupyter-container {
+            height: calc(100vh - 60px);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .jupyter-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .loading-subtext {
+            opacity: 0.9;
+            text-align: center;
+            max-width: 500px;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #10b981;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .error-container {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            color: var(--danger-color);
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .action-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 10px;
+        }
+
+        .primary-btn {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="jupyter-header">
+        <div class="header-left">
+            <a href="/dashboard" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+            
+            <div class="jupyter-title">
+                <i class="fas fa-book-open"></i>
+                JupyterLite - Python Environment
+            </div>
+        </div>
+        
+        <div id="status-indicator" class="status-indicator loading">
+            <i class="fas fa-circle"></i>
+            <span id="status-text">Loading...</span>
+        </div>
+    </div>
+
+    <div class="jupyter-container">
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Starting JupyterLite Environment...</div>
+            <div class="loading-subtext">
+                Setting up your personal Python development environment in the browser. 
+                This may take a moment on first startup as we download and initialize the Python runtime.
+            </div>
+            
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div id="progress-text" style="font-size: 0.9rem; opacity: 0.8;">Initializing...</div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div class="feature-title">Write Python Code</div>
+                    <div class="feature-desc">Full Python environment in browser</div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="feature-title">Data Analysis</div>
+                    <div class="feature-desc">pandas, numpy, matplotlib included</div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="feature-title">Machine Learning</div>
+                    <div class="feature-desc">scikit-learn ready to use</div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-save"></i>
+                    </div>
+                    <div class="feature-title">Save & Export</div>
+                    <div class="feature-desc">Download notebooks and data</div>
+                </div>
+            </div>
+        </div>
+        
+        <iframe id="jupyter-iframe" class="jupyter-iframe" style="display: none;"></iframe>
+        
+        <div id="error-container" class="loading-overlay" style="display: none;">
+            <div class="error-container">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="error-title">JupyterLite Failed to Load</h3>
+                <p class="error-message">
+                    The JupyterLite environment could not be started. This might be due to:
+                    <br>• Browser compatibility issues
+                    <br>• Network connectivity problems
+                    <br>• CDN or resource loading errors
+                </p>
+                
+                <div style="margin: 20px 0;">
+                    <button onclick="retryJupyter()" class="action-btn primary-btn">
+                        <i class="fas fa-redo"></i>
+                        Retry Loading
+                    </button>
+                    <a href="/dashboard" class="action-btn" style="background: #6b7280; color: white;">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let loadingStep = 0;
+        const loadingSteps = [
+            { text: 'Initializing JupyterLite...', progress: 10 },
+            { text: 'Loading Python runtime...', progress: 25 },
+            { text: 'Setting up packages...', progress: 50 },
+            { text: 'Preparing environment...', progress: 75 },
+            { text: 'Almost ready...', progress: 90 },
+            { text: 'Starting Jupyter...', progress: 100 }
+        ];
+        
+        function updateStatus(status, text) {
+            const indicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            
+            indicator.className = `status-indicator ${status}`;
+            statusText.textContent = text;
+        }
+
+        function updateProgress() {
+            if (loadingStep < loadingSteps.length) {
+                const step = loadingSteps[loadingStep];
+                document.getElementById('progress-fill').style.width = step.progress + '%';
+                document.getElementById('progress-text').textContent = step.text;
+                loadingStep++;
+                setTimeout(updateProgress, 800);
+            }
+        }
+
+        function showError() {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('error-container').style.display = 'flex';
+            updateStatus('error', 'Failed to Load');
+        }
+
+        function retryJupyter() {
+            loadingStep = 0;
+            document.getElementById('error-container').style.display = 'none';
+            document.getElementById('loading-overlay').style.display = 'flex';
+            updateStatus('loading', 'Retrying...');
+            setTimeout(initializeJupyter, 1000);
+        }
+
+        function initializeJupyter() {
+            console.log('Initializing JupyterLite...');
+            updateStatus('loading', 'Loading...');
+            updateProgress();
+            
+            // Use the most reliable JupyterLite CDN
+            const jupyterLiteUrl = 'https://jupyter.org/try-jupyter/lab/';
+            
+            const iframe = document.getElementById('jupyter-iframe');
+            iframe.src = jupyterLiteUrl;
+            
+            // Handle successful load
+            iframe.onload = function() {
+                console.log('JupyterLite iframe loaded successfully');
+                setTimeout(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    iframe.style.display = 'block';
+                    updateStatus('connected', 'Ready');
+                    
+                    // Show welcome message for first-time users
+                    if (!localStorage.getItem('jupyterlite_welcomed')) {
+                        setTimeout(() => {
+                            if (confirm('Welcome to JupyterLite! Would you like a quick tutorial on how to upload and run notebooks?')) {
+                                showTutorial();
+                            }
+                            localStorage.setItem('jupyterlite_welcomed', 'true');
+                        }, 2000);
+                    }
+                }, 1000);
+            };
+            
+            // Handle load error with fallback URLs
+            iframe.onerror = function() {
+                console.error(`Failed to load JupyterLite from: ${jupyterLiteUrls[currentUrlIndex]}`);
+                
+                currentUrlIndex++;
+                if (currentUrlIndex < jupyterLiteUrls.length) {
+                    console.log(`Trying fallback URL: ${jupyterLiteUrls[currentUrlIndex]}`);
+                    iframe.src = jupyterLiteUrls[currentUrlIndex];
+                    updateStatus('loading', `Trying alternative server...`);
+                } else {
+                    console.error('All JupyterLite URLs failed');
+                    showError();
+                }
+            };
+            
+            // Improved timeout fallback with multiple checks
+            let loadCheckAttempts = 0;
+            const maxLoadChecks = 10;
+            
+            function checkIfLoaded() {
+                loadCheckAttempts++;
+                
+                if (iframe.style.display === 'block') {
+                    return; // Already loaded
+                }
+                
+                if (loadCheckAttempts >= maxLoadChecks) {
+                    console.log('JupyterLite load timeout');
+                    
+                    // Try next URL if available
+                    currentUrlIndex++;
+                    if (currentUrlIndex < jupyterLiteUrls.length) {
+                        console.log(`Timeout - trying fallback URL: ${jupyterLiteUrls[currentUrlIndex]}`);
+                        iframe.src = jupyterLiteUrls[currentUrlIndex];
+                        loadCheckAttempts = 0; // Reset attempts for new URL
+                        updateStatus('loading', 'Trying alternative server...');
+                        setTimeout(checkIfLoaded, 800);
+                        return;
+                    } else {
+                        console.log('All URLs failed - assuming loaded anyway');
+                        document.getElementById('loading-overlay').style.display = 'none';
+                        iframe.style.display = 'block';
+                        updateStatus('connected', 'Ready (Forced)');
+                        return;
+                    }
+                }
+                
+                // Check if iframe content is accessible (may fail due to CORS)
+                try {
+                    if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+                        console.log('JupyterLite detected as loaded via contentDocument');
+                        document.getElementById('loading-overlay').style.display = 'none';
+                        iframe.style.display = 'block';
+                        updateStatus('connected', 'Ready');
+                        return;
+                    }
+                } catch (e) {
+                    // CORS error is expected and normal
+                }
+                
+                setTimeout(checkIfLoaded, 800);
+            }
+            
+            setTimeout(checkIfLoaded, 3000);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing DataLab JupyterLite Environment...');
+            setTimeout(initializeJupyter, 1500);
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                const iframe = document.getElementById('jupyter-iframe');
+                if (iframe.style.display === 'block') {
+                    updateStatus('connected', 'Ready');
+                }
+            }
+        });
+
+        function showTutorial() {
+            const tutorialSteps = [
+                "1. 📂 Click the folder icon in JupyterLite to upload your downloaded notebook file",
+                "2. 📝 Double-click the uploaded .ipynb file to open it",
+                "3. ▶️ Press Shift+Enter to run cells, or use the 'Run' button",
+                "4. 💾 Use Ctrl+S to save your work to browser storage",
+                "5. 📥 Right-click files to download them back to your computer"
+            ];
+            
+            alert("JupyterLite Quick Tutorial:\n\n" + tutorialSteps.join("\n\n") + 
+                  "\n\n💡 Tip: Your notebooks are saved in browser storage. Remember to download important work!");
+        }
+
+        // Add message to warn about browser compatibility
+        if (!window.WebAssembly) {
+            setTimeout(() => {
+                showError();
+                document.querySelector('.error-message').innerHTML = 
+                    'Your browser does not support WebAssembly, which is required for JupyterLite.<br>' +
+                    'Please use a modern browser like Chrome, Firefox, Safari, or Edge.';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

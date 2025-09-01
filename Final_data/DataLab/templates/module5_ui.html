@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 5 - ML Model Recommender</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .module5-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .module5-frame {
+            width: 100%;
+            height: 800px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .info-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            margin-top: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Module 5 - ML Model Recommender</h1>
+            <p>Professional machine learning model recommendation system</p>
+        </div>
+
+        <div class="module5-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading Module 5 ML Recommender interface...</p>
+                <p><small>This may take a few moments to start</small></p>
+            </div>
+            <iframe 
+                id="module5-frame"
+                class="module5-frame" 
+                src="http://localhost:5000"
+                style="display: none;"
+                onload="document.getElementById('loading').style.display='none'; this.style.display='block';">
+            </iframe>
+        </div>
+
+        <div class="info-section">
+            <h3>🚀 Module 5 Features</h3>
+            <ul>
+                <li><strong>Intelligent Algorithm Selection:</strong> 19 classification and regression models</li>
+                <li><strong>GPT-Powered Insights:</strong> Technical explanations and recommendations</li>
+                <li><strong>Real Hyperparameter Tuning:</strong> GridSearchCV optimization</li>
+                <li><strong>Performance Analysis:</strong> Cross-validation with multiple metrics</li>
+                <li><strong>Jupyter Export:</strong> Generate working notebooks</li>
+            </ul>
+            
+            <h3>📝 How to Use</h3>
+            <ol>
+                <li>Upload your dataset (CSV or Excel)</li>
+                <li>Review comprehensive dataset analysis</li>
+                <li>Compare model performances</li>
+                <li>Read GPT-powered technical insights</li>
+                <li>Tune hyperparameters for optimal performance</li>
+                <li>Export to Jupyter notebook</li>
+            </ol>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="/" class="btn">🔙 Back to Pipeline</a>
+                <a href="http://localhost:5000" class="btn" target="_blank">🔗 Open in New Tab</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle iframe loading
+        setTimeout(function() {
+            const loading = document.getElementById('loading');
+            const frame = document.getElementById('module5-frame');
+            if (loading.style.display !== 'none') {
+                loading.innerHTML = '<div class="spinner"></div><p>Still loading... Module 5 is starting up</p><p><small>Make sure Module 5 is running on port 5000</small></p>';
+            }
+        }, 5000);
+
+        // Fallback if iframe fails to load
+        setTimeout(function() {
+            const loading = document.getElementById('loading');
+            const frame = document.getElementById('module5-frame');
+            if (loading.style.display !== 'none') {
+                loading.innerHTML = '<h3>⚠️ Module 5 Not Running</h3><p>To access Module 5:</p><ul><li>Run <code>python app.py</code> in terminal</li><li>Then <a href="http://localhost:5000" target="_blank" style="color: #667eea;">click here to open Module 5</a></li><li>Or refresh this page once Module 5 is running</li></ul>';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

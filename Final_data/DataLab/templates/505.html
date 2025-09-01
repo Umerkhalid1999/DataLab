@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - DataLab{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center vh-100">
+  <div class="text-center">
+    <div class="mb-4">
+      <i class="fas fa-exclamation-triangle text-warning" style="font-size: 6rem;"></i>
+    </div>
+    <h1 class="display-1 fw-bold">500</h1>
+    <p class="fs-3">Internal Server Error</p>
+    <p class="lead">Something went wrong on our end. Please try again later.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Go Home</a>
+  </div>
+</div>
+{% endblock %}
