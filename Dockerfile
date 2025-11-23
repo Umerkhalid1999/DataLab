@@ -11,15 +11,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements early for cache
-COPY requirements.txt /app/requirements.txt
+COPY requirements.txt /main/requirements.txt
 RUN pip install --upgrade pip \
-    && pip install -r /app/requirements.txt
+    && pip install -r /main/requirements.txt
 
 # Copy project
-COPY . /app
+COPY . /main
 
 EXPOSE 8000
 
 # Run the Flask app using gunicorn (assumes `app.py` defines `app`).
 # Bind to the port provided by the environment (Vercel sets $PORT for containers).
-ENTRYPOINT ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8000} --workers 2"]
+ENTRYPOINT ["sh", "-c", "gunicorn main:main --bind 0.0.0.0:${PORT:-8000} --workers 2"]
