@@ -1,5 +1,5 @@
 # Dockerfile for deploying the Flask DataLab app
-FROM python:3.11-slim
+FROM python:3.11
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
