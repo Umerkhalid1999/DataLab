@@ -184,9 +184,14 @@ function initializeAIAssistant() {
         });
     }
 
-    // Initialize with a welcome message
-    if (chatHistory && chatHistory.children.length === 0) {
-        addMessageToChat('assistant', 'Hello! I\'m your AI assistant for data analysis and preprocessing. How can I help you today?');
+    // Initialize with a welcome message (only if no welcome section exists)
+    if (chatHistory) {
+        const welcomeSection = chatHistory.querySelector('.assistant-welcome');
+        const chatMessages = chatHistory.querySelectorAll('.chat-message');
+
+        if (!welcomeSection && chatMessages.length === 0) {
+            addMessageToChat('assistant', 'Hello! I\'m DataLab AI, your specialized assistant for **data preprocessing** and cleaning.\n\nI can help you with:\n🧹 Data Cleaning\n📊 Missing Values & Outliers\n⚖️ Normalization & Scaling\n🏷️ Feature Encoding\n🔧 Feature Engineering\n\nWhat preprocessing challenge can I help you solve?');
+        }
     }
 
     // Function to get current dataset ID

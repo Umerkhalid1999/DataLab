@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Workflow - DataLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .workflow-container { background: white; border-radius: 15px; padding: 30px; max-width: 1600px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .workflow-header { text-align: center; margin-bottom: 30px; }
+        .workflow-header h1 { color: #667eea; font-weight: bold; }
+        
+        /* Node-based Pipeline */
+        .pipeline-container { display: flex; justify-content: space-around; align-items: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; flex-wrap: wrap; }
+        .workflow-node { background: white; border: 3px solid #dee2e6; border-radius: 15px; padding: 20px; width: 150px; text-align: center; cursor: pointer; transition: all 0.3s; margin: 10px; position: relative; }
+        .workflow-node:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .workflow-node.active { border-color: #667eea; background: #e7e9fc; }
+        .workflow-node.completed { border-color: #28a745; background: #d4edda; }
+        .workflow-node-icon { font-size: 40px; margin-bottom: 10px; color: #6c757d; }
+        .workflow-node.active .workflow-node-icon { color: #667eea; }
+        .workflow-node.completed .workflow-node-icon { color: #28a745; }
+        .workflow-node-name { font-weight: bold; font-size: 14px; }
+        .workflow-node-badge { position: absolute; top: -10px; right: -10px; background: #28a745; color: white; border-radius: 50%; width: 25px; height: 25px; display: none; align-items: center; justify-content: center; }
+        .workflow-node.completed .workflow-node-badge { display: flex; }
+        
+        /* Arrow between nodes */
+        .arrow { font-size: 30px; color: #dee2e6; margin: 0 10px; }
+        .arrow.active { color: #667eea; }
+        
+        /* Module Content Area */
+        .module-content { background: #f8f9fa; border-radius: 10px; padding: 20px; min-height: 600px; margin-top: 20px; }
+        .module-content iframe { width: 100%; height: 100%; min-height: 600px; border: none; border-radius: 8px; background: white; }
+        .module-placeholder { text-align: center; padding: 100px 20px; color: #6c757d; }
+        .module-placeholder i { font-size: 80px; margin-bottom: 20px; }
+        
+        /* Control Buttons */
+        .workflow-controls { text-align: center; margin: 20px 0; }
+        .btn-workflow { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 30px; font-size: 16px; font-weight: bold; border-radius: 25px; margin: 0 10px; }
+        .btn-workflow:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        
+        /* Dataset Selector */
+        .dataset-selector { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="workflow-container">
+        <div class="workflow-header">
+            <h1><i class="fas fa-project-diagram"></i> Unified Workflow System</h1>
+            <p class="text-muted">All Modules in One Place - Node-Based Workflow</p>
+        </div>
+        
+        <!-- Dataset Selector -->
+        <div class="dataset-selector">
+            <label class="form-label"><strong>Select Dataset:</strong></label>
+            <select id="datasetSelect" class="form-select">
+                <option value="">-- Choose a dataset --</option>
+            </select>
+        </div>
+        
+        <!-- Node-Based Pipeline -->
+        <div class="pipeline-container">
+            <div class="workflow-node" data-module="upload" onclick="loadModule('upload')">
+                <div class="workflow-node-badge"><i class="fas fa-check"></i></div>
+                <div class="workflow-node-icon"><i class="fas fa-upload"></i></div>
+                <div class="workflow-node-name">Data Upload</div>
+            </div>
+            
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="workflow-node" data-module="cleaning" onclick="loadModule('cleaning')">
+                <div class="workflow-node-badge"><i class="fas fa-check"></i></div>
+                <div class="workflow-node-icon"><i class="fas fa-broom"></i></div>
+                <div class="workflow-node-name">Data Cleaning</div>
+            </div>
+            
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="workflow-node" data-module="visualization" onclick="loadModule('visualization')">
+                <div class="workflow-node-badge"><i class="fas fa-check"></i></div>
+                <div class="workflow-node-icon"><i class="fas fa-chart-bar"></i></div>
+                <div class="workflow-node-name">Visualization</div>
+            </div>
+            
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="workflow-node" data-module="feature" onclick="loadModule('feature')">
+                <div class="workflow-node-badge"><i class="fas fa-check"></i></div>
+                <div class="workflow-node-icon"><i class="fas fa-magic"></i></div>
+                <div class="workflow-node-name">Feature Engineering</div>
+            </div>
+            
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="workflow-node" data-module="ml" onclick="loadModule('ml')">
+                <div class="workflow-node-badge"><i class="fas fa-check"></i></div>
+                <div class="workflow-node-icon"><i class="fas fa-brain"></i></div>
+                <div class="workflow-node-name">ML Training</div>
+            </div>
+        </div>
+        
+        <!-- Workflow Controls -->
+        <div class="workflow-controls">
+            <button class="btn btn-workflow" onclick="runAllModules()">
+                <i class="fas fa-play"></i> Run All Modules Automatically
+            </button>
+            <button class="btn btn-workflow" onclick="resetWorkflow()">
+                <i class="fas fa-redo"></i> Reset Workflow
+            </button>
+        </div>
+        
+        <!-- Module Content Area -->
+        <div class="module-content" id="moduleContent">
+            <div class="module-placeholder">
+                <i class="fas fa-mouse-pointer"></i>
+                <h3>Click on any node above to view that module</h3>
+                <p>Or click "Run All Modules Automatically" to execute the entire workflow</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentDatasetId = null;
+        let currentModule = null;
+        
+        // Load datasets on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDatasets();
+        });
+        
+        async function loadDatasets() {
+            try {
+                const response = await fetch('/api/datasets');
+                const data = await response.json();
+                
+                const select = document.getElementById('datasetSelect');
+                select.innerHTML = '<option value="">-- Choose a dataset --</option>';
+                
+                // data is directly an array, not wrapped in {datasets: []}
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(ds => {
+                        const option = document.createElement('option');
+                        option.value = ds.id;
+                        option.textContent = `${ds.name} (${ds.rows} rows, ${ds.columns} cols)`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    console.log('No datasets found or empty array');
+                }
+            } catch (error) {
+                console.error('Error loading datasets:', error);
+            }
+        }
+        
+        // Dataset selection handler
+        document.getElementById('datasetSelect').addEventListener('change', function() {
+            currentDatasetId = this.value;
+            if (currentDatasetId && currentModule) {
+                loadModule(currentModule);
+            }
+        });
+        
+        function loadModule(moduleName) {
+            if (!currentDatasetId) {
+                alert('Please select a dataset first!');
+                return;
+            }
+            
+            currentModule = moduleName;
+            
+            // Update active node
+            document.querySelectorAll('.workflow-node').forEach(node => {
+                node.classList.remove('active');
+            });
+            document.querySelector(`[data-module="${moduleName}"]`).classList.add('active');
+            
+            // Load module content
+            const contentDiv = document.getElementById('moduleContent');
+            let moduleUrl = '';
+            
+            switch(moduleName) {
+                case 'upload':
+                    contentDiv.innerHTML = `
+                        <div class="module-placeholder">
+                            <i class="fas fa-upload" style="color: #667eea;"></i>
+                            <h3>Data Upload Module</h3>
+                            <p>Dataset ID: ${currentDatasetId} is already uploaded!</p>
+                            <a href="/data_preview/${currentDatasetId}" target="_blank" class="btn btn-primary">View Dataset Details</a>
+                        </div>
+                    `;
+                    markNodeCompleted('upload');
+                    break;
+                    
+                case 'cleaning':
+                    contentDiv.innerHTML = `
+                        <div style="padding: 20px;">
+                            <h3><i class="fas fa-broom"></i> Data Cleaning Module</h3>
+                            <p>Clean your dataset automatically with AI-based analysis</p>
+                            <button class="btn btn-success btn-lg" onclick="cleanDataset()">
+                                <i class="fas fa-magic"></i> Clean Dataset Now
+                            </button>
+                            <div id="cleaningResult" class="mt-3"></div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'visualization':
+                    moduleUrl = `/visualization/${currentDatasetId}`;
+                    contentDiv.innerHTML = `<iframe src="${moduleUrl}"></iframe>`;
+                    markNodeCompleted('visualization');
+                    break;
+                    
+                case 'feature':
+                    moduleUrl = `/module6/${currentDatasetId}`;
+                    contentDiv.innerHTML = `<iframe src="${moduleUrl}"></iframe>`;
+                    markNodeCompleted('feature');
+                    break;
+                    
+                case 'ml':
+                    moduleUrl = `/ml/${currentDatasetId}`;
+                    contentDiv.innerHTML = `<iframe src="${moduleUrl}"></iframe>`;
+                    markNodeCompleted('ml');
+                    break;
+            }
+        }
+        
+        async function cleanDataset() {
+            const resultDiv = document.getElementById('cleaningResult');
+            resultDiv.innerHTML = '<div class="spinner-border text-primary" role="status"></div> <span>Cleaning dataset...</span>';
+            
+            try {
+                const response = await fetch(`/api/clean_dataset/${currentDatasetId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Dataset Cleaned Successfully!</h5>
+                            <p><strong>Rows removed:</strong> ${data.rows_removed || 0}</p>
+                            <p><strong>Missing values handled:</strong> ${data.missing_handled || 0}</p>
+                            ${data.ai_insights ? `<hr><h6>AI Insights:</h6><p>${data.ai_insights}</p>` : ''}
+                        </div>
+                    `;
+                    markNodeCompleted('cleaning');
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function markNodeCompleted(moduleName) {
+            const node = document.querySelector(`[data-module="${moduleName}"]`);
+            if (node) {
+                node.classList.add('completed');
+            }
+        }
+        
+        async function runAllModules() {
+            if (!currentDatasetId) {
+                alert('Please select a dataset first!');
+                return;
+            }
+            
+            if (!confirm('This will run all modules automatically. Continue?')) {
+                return;
+            }
+            
+            // Run modules in sequence
+            const modules = ['upload', 'cleaning', 'visualization', 'feature', 'ml'];
+            
+            for (let module of modules) {
+                loadModule(module);
+                
+                // Auto-clean if cleaning module
+                if (module === 'cleaning') {
+                    await cleanDataset();
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            alert('All modules executed! Review each module by clicking on the nodes.');
+        }
+        
+        function resetWorkflow() {
+            document.querySelectorAll('.workflow-node').forEach(node => {
+                node.classList.remove('active', 'completed');
+            });
+            
+            document.getElementById('moduleContent').innerHTML = `
+                <div class="module-placeholder">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <h3>Click on any node above to view that module</h3>
+                    <p>Or click "Run All Modules Automatically" to execute the entire workflow</p>
+                </div>
+            `;
+            
+            currentModule = null;
+        }
+    </script>
+</body>
+</html>

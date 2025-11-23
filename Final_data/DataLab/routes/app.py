@@ -25,93 +25,174 @@ class MLRecommender:
         if openai_api_key:
             openai.api_key = openai_api_key
             
+        # Enhanced: Train 10+ models for comprehensive analysis
         self.classification_models = {
-            'Random Forest': RandomForestClassifier(random_state=42, n_jobs=-1),
-            'Gradient Boosting': GradientBoostingClassifier(random_state=42),
+            'Random Forest': RandomForestClassifier(random_state=42, n_jobs=-1, n_estimators=100),
+            'Gradient Boosting': GradientBoostingClassifier(random_state=42, n_estimators=100),
             'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
-            'SVM': SVC(random_state=42, probability=True),
             'Decision Tree': DecisionTreeClassifier(random_state=42),
-            'KNN': KNeighborsClassifier(),
             'Naive Bayes': GaussianNB(),
-            'Neural Network': MLPClassifier(random_state=42, max_iter=500),
-            'AdaBoost': AdaBoostClassifier(random_state=42)
+            'KNN': KNeighborsClassifier(n_neighbors=5),
+            'SVM': SVC(random_state=42, kernel='rbf'),
+            'AdaBoost': AdaBoostClassifier(random_state=42, n_estimators=100),
+            'Neural Network': MLPClassifier(random_state=42, max_iter=500, hidden_layer_sizes=(100,))
         }
-        
+
         self.regression_models = {
-            'Random Forest': RandomForestRegressor(random_state=42, n_jobs=-1),
-            'Gradient Boosting': GradientBoostingRegressor(random_state=42),
+            'Random Forest': RandomForestRegressor(random_state=42, n_jobs=-1, n_estimators=100),
+            'Gradient Boosting': GradientBoostingRegressor(random_state=42, n_estimators=100),
             'Linear Regression': LinearRegression(),
             'Ridge Regression': Ridge(random_state=42),
             'Lasso Regression': Lasso(random_state=42),
             'ElasticNet': ElasticNet(random_state=42),
-            'SVM': SVR(),
             'Decision Tree': DecisionTreeRegressor(random_state=42),
-            'KNN': KNeighborsRegressor(),
-            'Neural Network': MLPRegressor(random_state=42, max_iter=500)
+            'KNN': KNeighborsRegressor(n_neighbors=5),
+            'SVR': SVR(kernel='rbf'),
+            'AdaBoost': AdaBoostRegressor(random_state=42, n_estimators=100),
+            'Neural Network': MLPRegressor(random_state=42, max_iter=500, hidden_layer_sizes=(100,))
         }
         
+        # Three-tier tuning grids: normal, semi-deep, deep
         self.hyperparameter_grids = {
+            'normal': self._get_normal_grids(),
+            'semi_deep': self._get_semi_deep_grids(),
+            'deep': self._get_deep_grids()
+        }
+    
+    def _get_normal_grids(self):
+        """Fast tuning - 5-15 seconds"""
+        return {
             'Random Forest': {
-                'classification': {
-                    'n_estimators': [100, 200, 300],
-                    'max_depth': [10, 20, None],
-                    'min_samples_split': [2, 5, 10],
-                    'min_samples_leaf': [1, 2, 4]
-                },
-                'regression': {
-                    'n_estimators': [100, 200, 300],
-                    'max_depth': [10, 20, None],
-                    'min_samples_split': [2, 5, 10],
-                    'min_samples_leaf': [1, 2, 4]
-                }
+                'classification': {'n_estimators': [100, 200], 'max_depth': [10, None]},
+                'regression': {'n_estimators': [100, 200], 'max_depth': [10, None]}
             },
             'Gradient Boosting': {
-                'classification': {
-                    'n_estimators': [100, 200],
-                    'learning_rate': [0.05, 0.1, 0.2],
-                    'max_depth': [3, 5, 7]
-                },
-                'regression': {
-                    'n_estimators': [100, 200],
-                    'learning_rate': [0.05, 0.1, 0.2],
-                    'max_depth': [3, 5, 7]
-                }
+                'classification': {'n_estimators': [100, 200], 'learning_rate': [0.05, 0.1]},
+                'regression': {'n_estimators': [100, 200], 'learning_rate': [0.05, 0.1]}
             },
             'SVM': {
-                'classification': {
-                    'C': [0.1, 1, 10],
-                    'kernel': ['rbf', 'linear'],
-                    'gamma': ['scale', 'auto']
-                },
-                'regression': {
-                    'C': [0.1, 1, 10],
-                    'kernel': ['rbf', 'linear'],
-                    'gamma': ['scale', 'auto']
-                }
+                'classification': {'C': [1, 10], 'kernel': ['rbf']},
+                'regression': {'C': [1, 10], 'kernel': ['rbf']}
             },
+            'SVR': {'regression': {'C': [1, 10], 'kernel': ['rbf']}},
             'KNN': {
-                'classification': {
-                    'n_neighbors': [3, 5, 7, 9],
-                    'weights': ['uniform', 'distance'],
-                    'metric': ['euclidean', 'manhattan']
-                },
-                'regression': {
-                    'n_neighbors': [3, 5, 7, 9],
-                    'weights': ['uniform', 'distance'],
-                    'metric': ['euclidean', 'manhattan']
-                }
+                'classification': {'n_neighbors': [3, 5, 7], 'weights': ['uniform', 'distance']},
+                'regression': {'n_neighbors': [3, 5, 7], 'weights': ['uniform', 'distance']}
+            },
+            'AdaBoost': {
+                'classification': {'n_estimators': [50, 100], 'learning_rate': [0.5, 1.0]},
+                'regression': {'n_estimators': [50, 100], 'learning_rate': [0.5, 1.0]}
             },
             'Neural Network': {
-                'classification': {
-                    'hidden_layer_sizes': [(50,), (100,), (50, 50)],
-                    'activation': ['relu', 'tanh'],
-                    'alpha': [0.0001, 0.001, 0.01]
-                },
-                'regression': {
-                    'hidden_layer_sizes': [(50,), (100,), (50, 50)],
-                    'activation': ['relu', 'tanh'],
-                    'alpha': [0.0001, 0.001, 0.01]
-                }
+                'classification': {'hidden_layer_sizes': [(50,), (100,)], 'alpha': [0.0001, 0.001]},
+                'regression': {'hidden_layer_sizes': [(50,), (100,)], 'alpha': [0.0001, 0.001]}
+            },
+            'Logistic Regression': {
+                'classification': {'C': [0.1, 1, 10], 'solver': ['lbfgs', 'liblinear']}
+            },
+            'Decision Tree': {
+                'classification': {'max_depth': [5, 10, None], 'min_samples_split': [2, 5]},
+                'regression': {'max_depth': [5, 10, None], 'min_samples_split': [2, 5]}
+            },
+            'Linear Regression': {
+                'regression': {'fit_intercept': [True, False]}
+            },
+            'Ridge Regression': {'regression': {'alpha': [0.1, 1.0, 10.0]}},
+            'Lasso Regression': {'regression': {'alpha': [0.01, 0.1, 1.0]}},
+            'ElasticNet': {'regression': {'alpha': [0.1, 1.0], 'l1_ratio': [0.3, 0.5, 0.7]}},
+            'Naive Bayes': {
+                'classification': {'var_smoothing': [1e-9, 1e-8, 1e-7]}
+            }
+        }
+    
+    def _get_semi_deep_grids(self):
+        """Medium tuning - 30-90 seconds"""
+        return {
+            'Random Forest': {
+                'classification': {'n_estimators': [50, 100, 200, 300], 'max_depth': [5, 10, 15, 20, None], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]},
+                'regression': {'n_estimators': [50, 100, 200, 300], 'max_depth': [5, 10, 15, 20, None], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
+            },
+            'Gradient Boosting': {
+                'classification': {'n_estimators': [50, 100, 200, 300], 'learning_rate': [0.01, 0.05, 0.1, 0.2], 'max_depth': [3, 5, 7, 9], 'subsample': [0.8, 0.9, 1.0]},
+                'regression': {'n_estimators': [50, 100, 200, 300], 'learning_rate': [0.01, 0.05, 0.1, 0.2], 'max_depth': [3, 5, 7, 9], 'subsample': [0.8, 0.9, 1.0]}
+            },
+            'SVM': {
+                'classification': {'C': [0.1, 1, 10], 'kernel': ['rbf', 'linear'], 'gamma': ['scale', 'auto']},
+                'regression': {'C': [0.1, 1, 10], 'kernel': ['rbf', 'linear'], 'gamma': ['scale', 'auto']}
+            },
+            'SVR': {'regression': {'C': [0.1, 1, 10], 'kernel': ['rbf', 'linear'], 'gamma': ['scale', 'auto']}},
+            'KNN': {
+                'classification': {'n_neighbors': [3, 5, 7, 9], 'weights': ['uniform', 'distance'], 'metric': ['euclidean', 'manhattan']},
+                'regression': {'n_neighbors': [3, 5, 7, 9], 'weights': ['uniform', 'distance'], 'metric': ['euclidean', 'manhattan']}
+            },
+            'AdaBoost': {
+                'classification': {'n_estimators': [50, 100, 200], 'learning_rate': [0.5, 1.0, 1.5]},
+                'regression': {'n_estimators': [50, 100, 200], 'learning_rate': [0.5, 1.0, 1.5]}
+            },
+            'Neural Network': {
+                'classification': {'hidden_layer_sizes': [(50,), (100,), (50, 50)], 'alpha': [0.0001, 0.001, 0.01], 'activation': ['relu', 'tanh']},
+                'regression': {'hidden_layer_sizes': [(50,), (100,), (50, 50)], 'alpha': [0.0001, 0.001, 0.01], 'activation': ['relu', 'tanh']}
+            },
+            'Logistic Regression': {'classification': {'C': [0.1, 1, 10, 100], 'solver': ['lbfgs', 'liblinear', 'saga']}},
+            'Decision Tree': {
+                'classification': {'max_depth': [5, 10, 15, None], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]},
+                'regression': {'max_depth': [5, 10, 15, None], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
+            },
+            'Linear Regression': {
+                'regression': {'fit_intercept': [True, False], 'copy_X': [True, False]}
+            },
+            'Ridge Regression': {'regression': {'alpha': [0.1, 1.0, 10.0, 100.0], 'solver': ['auto', 'svd']}},
+            'Lasso Regression': {'regression': {'alpha': [0.01, 0.1, 1.0, 10.0], 'max_iter': [1000, 5000]}},
+            'ElasticNet': {'regression': {'alpha': [0.1, 1.0, 10.0], 'l1_ratio': [0.3, 0.5, 0.7], 'max_iter': [1000, 5000]}},
+            'Naive Bayes': {
+                'classification': {'var_smoothing': [1e-10, 1e-9, 1e-8, 1e-7, 1e-6]}
+            }
+        }
+    
+    def _get_deep_grids(self):
+        """Comprehensive tuning - 90-300 seconds"""
+        return {
+            'Random Forest': {
+                'classification': {'n_estimators': [50, 100, 200, 300, 500], 'max_depth': [5, 10, 15, 20, 30, None], 'min_samples_split': [2, 5, 10, 15], 'min_samples_leaf': [1, 2, 4, 6], 'max_features': ['sqrt', 'log2', None]},
+                'regression': {'n_estimators': [50, 100, 200, 300, 500], 'max_depth': [5, 10, 15, 20, 30, None], 'min_samples_split': [2, 5, 10, 15], 'min_samples_leaf': [1, 2, 4, 6], 'max_features': ['sqrt', 'log2', None]}
+            },
+            'Gradient Boosting': {
+                'classification': {'n_estimators': [50, 100, 200, 300, 500], 'learning_rate': [0.01, 0.05, 0.1, 0.15, 0.2], 'max_depth': [3, 5, 7, 9, 11], 'subsample': [0.7, 0.8, 0.9, 1.0], 'min_samples_split': [2, 5, 10]},
+                'regression': {'n_estimators': [50, 100, 200, 300, 500], 'learning_rate': [0.01, 0.05, 0.1, 0.15, 0.2], 'max_depth': [3, 5, 7, 9, 11], 'subsample': [0.7, 0.8, 0.9, 1.0], 'min_samples_split': [2, 5, 10]}
+            },
+            'SVM': {
+                'classification': {'C': [0.01, 0.1, 1, 10, 100], 'kernel': ['rbf', 'linear', 'poly'], 'gamma': ['scale', 'auto', 0.001, 0.01]},
+                'regression': {'C': [0.01, 0.1, 1, 10, 100], 'kernel': ['rbf', 'linear', 'poly'], 'gamma': ['scale', 'auto', 0.001, 0.01]}
+            },
+            'SVR': {'regression': {'C': [0.01, 0.1, 1, 10, 100], 'kernel': ['rbf', 'linear', 'poly'], 'gamma': ['scale', 'auto', 0.001, 0.01], 'epsilon': [0.01, 0.1, 0.2]}},
+            'KNN': {
+                'classification': {'n_neighbors': [3, 5, 7, 9, 11, 13, 15, 20], 'weights': ['uniform', 'distance'], 'metric': ['euclidean', 'manhattan', 'minkowski'], 'p': [1, 2, 3]},
+                'regression': {'n_neighbors': [3, 5, 7, 9, 11, 13, 15, 20], 'weights': ['uniform', 'distance'], 'metric': ['euclidean', 'manhattan', 'minkowski'], 'p': [1, 2, 3]}
+            },
+            'AdaBoost': {
+                'classification': {'n_estimators': [50, 100, 200, 300, 500], 'learning_rate': [0.01, 0.1, 0.5, 1.0, 1.5, 2.0]},
+                'regression': {'n_estimators': [50, 100, 200, 300, 500], 'learning_rate': [0.01, 0.1, 0.5, 1.0, 1.5, 2.0]}
+            },
+            'Neural Network': {
+                'classification': {'hidden_layer_sizes': [(50,), (100,), (150,), (200,), (50, 50), (100, 50), (100, 100)], 'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1], 'activation': ['relu', 'tanh', 'logistic'], 'learning_rate': ['constant', 'adaptive'], 'solver': ['adam', 'sgd']},
+                'regression': {'hidden_layer_sizes': [(50,), (100,), (150,), (200,), (50, 50), (100, 50), (100, 100)], 'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1], 'activation': ['relu', 'tanh'], 'learning_rate': ['constant', 'adaptive'], 'solver': ['adam', 'sgd']}
+            },
+            'Logistic Regression': {'classification': {'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000], 'solver': ['lbfgs', 'liblinear', 'saga'], 'max_iter': [500, 1000, 2000], 'penalty': ['l2']}},
+            'Decision Tree': {
+                'classification': {'max_depth': [3, 5, 10, 15, 20, 30, None], 'min_samples_split': [2, 5, 10, 15, 20], 'min_samples_leaf': [1, 2, 4, 6, 8], 'criterion': ['gini', 'entropy'], 'splitter': ['best', 'random']},
+                'regression': {'max_depth': [3, 5, 10, 15, 20, 30, None], 'min_samples_split': [2, 5, 10, 15, 20], 'min_samples_leaf': [1, 2, 4, 6, 8], 'criterion': ['squared_error', 'absolute_error'], 'splitter': ['best', 'random']}
+            },
+            'Linear Regression': {
+                'regression': {'fit_intercept': [True, False], 'copy_X': [True, False], 'positive': [True, False]}
+            },
+            'Ridge Regression': {'regression': {'alpha': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], 'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg']}},
+            'Lasso Regression': {'regression': {'alpha': [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0], 'max_iter': [1000, 5000, 10000], 'selection': ['cyclic', 'random']}},
+            'ElasticNet': {'regression': {'alpha': [0.001, 0.01, 0.1, 1.0, 10.0], 'l1_ratio': [0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9], 'max_iter': [1000, 5000, 10000]}},
+            'Naive Bayes': {
+                'classification': {'var_smoothing': [1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4]}
+            },
+            'Linear Regression': {
+                'regression': {'fit_intercept': [True, False], 'copy_X': [True, False], 'positive': [True, False]}
             }
         }
     
@@ -205,40 +286,43 @@ class MLRecommender:
         return X_scaled, y, scaler
     
     def evaluate_models(self, X, y, task_type):
-        """Comprehensive model evaluation with multiple metrics"""
+        """Enhanced: Comprehensive model evaluation with 5-fold CV"""
         models = self.classification_models if task_type == 'classification' else self.regression_models
         results = {}
-        
+
+        print(f"[INFO] Evaluating {len(models)} models with 5-fold cross-validation...")
+
         # Split data for detailed evaluation
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y if task_type == 'classification' else None)
-        
+
         for name, model in models.items():
             try:
+                print(f"  [TRAINING] {name}...")
                 start_time = time.time()
-                
-                # Cross-validation scores
+
+                # Use cv=5 for robust evaluation
                 if task_type == 'classification':
-                    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
-                    
+                    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy', n_jobs=-1)
+
                     # Fit model for additional metrics
                     model.fit(X_train, y_train)
                     y_pred = model.predict(X_test)
-                    
+
                     # Calculate additional metrics
                     accuracy = accuracy_score(y_test, y_pred)
                     precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
                     recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
                     f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-                    
+
                     additional_metrics = {
                         'accuracy': float(accuracy),
                         'precision': float(precision),
                         'recall': float(recall),
                         'f1_score': float(f1)
                     }
-                    
+
                 else:
-                    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
+                    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2', n_jobs=-1)
                     
                     # Fit model for additional metrics
                     model.fit(X_train, y_train)
@@ -282,45 +366,33 @@ class MLRecommender:
     def get_gpt_analysis(self, model_name, dataset_analysis, performance_results):
         """Get intelligent analysis from GPT-3.5-turbo"""
         if not hasattr(openai, 'api_key') or not openai.api_key or openai.api_key == "sk-your-openai-api-key-here":
-            return None  # No analysis without valid API key
+            return None
         
         try:
-            prompt = f"""
-            As an expert ML engineer, analyze why {model_name} is suitable for this dataset:
+            from openai import OpenAI
+            client = OpenAI(api_key=openai.api_key)
             
-            Dataset Characteristics:
-            - Samples: {dataset_analysis['n_samples']}
-            - Features: {dataset_analysis['n_features']}
-            - Task: {dataset_analysis['task_type']}
-            - Data Size: {dataset_analysis['data_size_category']}
-            - Dimensionality: {dataset_analysis['dimensionality']}
-            - Missing Data: {dataset_analysis['missing_percentage']:.1f}%
+            prompt = f"""As an ML expert, analyze {model_name} for this dataset in 2-3 sentences:
+
+Dataset: {dataset_analysis['n_samples']} samples, {dataset_analysis['n_features']} features, {dataset_analysis['task_type']}
+Performance: {performance_results['mean_score']:.3f} CV score, {performance_results['training_time']:.2f}s training
+
+Explain why this model works well/poorly for this data."""
             
-            Model Performance:
-            - Cross-validation Score: {performance_results['mean_score']:.3f} ± {performance_results['std_score']:.3f}
-            - Training Time: {performance_results['training_time']:.2f}s
-            
-            Provide a concise technical explanation (2-3 sentences) of:
-            1. Why this model works well/poorly for this specific dataset
-            2. Key strengths/weaknesses given the data characteristics
-            3. Practical considerations for deployment
-            
-            Be specific and technical, focusing on algorithmic properties.
-            """
-            
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=200,
+                max_tokens=150,
                 temperature=0.3
             )
             
             return response.choices[0].message.content.strip()
             
         except Exception as e:
+            print(f"GPT Analysis Error: {e}")
             return None
     
-    def tune_hyperparameters(self, model_name, X, y, task_type):
+    def tune_hyperparameters(self, model_name, X, y, task_type, tuning_level='normal'):
         """Perform hyperparameter tuning using GridSearchCV"""
         models = self.classification_models if task_type == 'classification' else self.regression_models
         
@@ -328,7 +400,7 @@ class MLRecommender:
             return {'error': 'Model not found'}
         
         model = models[model_name]
-        param_grid = self.hyperparameter_grids.get(model_name, {}).get(task_type, {})
+        param_grid = self.hyperparameter_grids.get(tuning_level, {}).get(model_name, {}).get(task_type, {})
         
         if not param_grid:
             return {'error': 'No hyperparameter grid defined for this model'}
@@ -390,7 +462,7 @@ class MLRecommender:
         
         # Data size appropriateness
         data_size = dataset_analysis['data_size_category']
-        if model_name in ['Random Forest', 'Gradient Boosting', 'Neural Network']:
+        if model_name in ['Random Forest', 'Gradient Boosting', 'Neural Network', 'AdaBoost']:
             if data_size == 'large':
                 adjustments['data_size_fit'] = 5
             elif data_size == 'small':
@@ -400,17 +472,25 @@ class MLRecommender:
                 adjustments['data_size_fit'] = 3
             elif data_size == 'large':
                 adjustments['data_size_fit'] = -5
+        elif model_name in ['SVM', 'SVR']:
+            if data_size == 'small' or data_size == 'medium':
+                adjustments['data_size_fit'] = 2
+            elif data_size == 'large':
+                adjustments['data_size_fit'] = -7
         
         # Dimensionality appropriateness
         dimensionality = dataset_analysis['dimensionality']
-        if model_name == 'SVM':
+        if model_name in ['SVM', 'SVR']:
             if dimensionality == 'high':
                 adjustments['dimensionality_fit'] = -8
             else:
                 adjustments['dimensionality_fit'] = 3
-        elif model_name in ['Random Forest', 'Gradient Boosting']:
+        elif model_name in ['Random Forest', 'Gradient Boosting', 'AdaBoost']:
             if dimensionality == 'high':
                 adjustments['dimensionality_fit'] = 5
+        elif model_name in ['Lasso Regression', 'ElasticNet']:
+            if dimensionality == 'high':
+                adjustments['dimensionality_fit'] = 4
         
         # Training efficiency (faster is better for deployment)
         training_time = performance.get('training_time', 1)
@@ -420,7 +500,7 @@ class MLRecommender:
             adjustments['training_efficiency'] = -3
         
         # Interpretability bonus
-        interpretable_models = ['Decision Tree', 'Linear Regression', 'Logistic Regression', 'Naive Bayes']
+        interpretable_models = ['Decision Tree', 'Linear Regression', 'Logistic Regression', 'Naive Bayes', 'Ridge Regression', 'Lasso Regression']
         if model_name in interpretable_models:
             adjustments['interpretability'] = 2
         
@@ -515,9 +595,11 @@ class MLRecommender:
         model_imports = {
             'Random Forest': 'from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor',
             'Gradient Boosting': 'from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor',
+            'AdaBoost': 'from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor',
             'Logistic Regression': 'from sklearn.linear_model import LogisticRegression',
             'Linear Regression': 'from sklearn.linear_model import LinearRegression',
             'SVM': 'from sklearn.svm import SVC, SVR',
+            'SVR': 'from sklearn.svm import SVR',
             'Decision Tree': 'from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor',
             'KNN': 'from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor',
             'Naive Bayes': 'from sklearn.naive_bayes import GaussianNB',
@@ -770,9 +852,11 @@ class MLRecommender:
         constructors = {
             'Random Forest': 'RandomForestClassifier' if task_type == 'classification' else 'RandomForestRegressor',
             'Gradient Boosting': 'GradientBoostingClassifier' if task_type == 'classification' else 'GradientBoostingRegressor',
+            'AdaBoost': 'AdaBoostClassifier' if task_type == 'classification' else 'AdaBoostRegressor',
             'Logistic Regression': 'LogisticRegression',
             'Linear Regression': 'LinearRegression',
             'SVM': 'SVC' if task_type == 'classification' else 'SVR',
+            'SVR': 'SVR',
             'Decision Tree': 'DecisionTreeClassifier' if task_type == 'classification' else 'DecisionTreeRegressor',
             'KNN': 'KNeighborsClassifier' if task_type == 'classification' else 'KNeighborsRegressor',
             'Naive Bayes': 'GaussianNB',

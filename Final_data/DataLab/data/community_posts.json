@@ -1,0 +1,40 @@
+[
+  {
+    "id": "post_1761126080775",
+    "user_id": "2g7qRpGyi8RltRVdRYExsQpjMUy1",
+    "username": "user",
+    "user_email": "user@example.com",
+    "user_avatar": null,
+    "category": "questions",
+    "title": "DataScientist",
+    "content": "Dataset cleaning best strategy?",
+    "tags": [
+      "#machine learning"
+    ],
+    "image": null,
+    "timestamp": "2025-10-22T14:41:20.775190",
+    "likes": 1,
+    "comments": [],
+    "views": 0,
+    "liked_by": [
+      "2g7qRpGyi8RltRVdRYExsQpjMUy1"
+    ]
+  },
+  {
+    "id": "post_1761130299517",
+    "user_id": "2g7qRpGyi8RltRVdRYExsQpjMUy1",
+    "username": "daniyal",
+    "category": "questions",
+    "title": "ML Engineer",
+    "content": "Why data annotation agent hasn't been made?",
+    "tags": [
+      "#annotation"
+    ],
+    "timestamp": "2025-10-22T15:51:39.517696",
+    "likes": 1,
+    "liked_by": [
+      "2g7qRpGyi8RltRVdRYExsQpjMUy1"
+    ],
+    "comments": []
+  }
+]

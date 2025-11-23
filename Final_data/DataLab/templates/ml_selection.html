@@ -31,7 +31,7 @@
         <div class="hero-section">
             <div class="hero-content">
                 <h1>Professional ML Model Recommender</h1>
-                <p>Advanced machine learning model selection with GPT-powered insights and hyperparameter optimization</p>
+                <p>Advanced machine learning model selection with AI-powered insights and hyperparameter optimization</p>
             </div>
         </div>
 
@@ -149,6 +149,14 @@
                 </div>
             </div>
 
+            <!-- Explanations Section -->
+            <div class="explanations-section" id="explanationsSection">
+                <div class="section-header">
+                    <h2><i class="fas fa-lightbulb"></i> Understanding the Analysis</h2>
+                </div>
+                <div id="explanationsContent" class="explanations-content"></div>
+            </div>
+
             <div class="recommendations-section">
                 <div class="section-header">
                     <h2><i class="fas fa-list"></i> All Model Results</h2>
@@ -180,6 +188,7 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/gpt_explainer.js') }}"></script>
 
     {% if dataset %}
     <script>
@@ -219,21 +228,28 @@
         })
         .then(data => {
             console.log('ML API Response data:', data);
+            console.log('Has dataset_analysis:', !!data.dataset_analysis);
+            console.log('Has recommendations:', !!data.recommendations);
+            console.log('Recommendations length:', data.recommendations ? data.recommendations.length : 0);
             hideLoading();
             
-            if (data.dataset_analysis && data.recommendations) {
+            if (data.error) {
+                console.error('ML API Error:', data.error);
+                updateNavStatus('Error: ' + data.error, 'error');
+                showError(data.error);
+                return;
+            }
+            
+            if (data.dataset_analysis && data.recommendations && data.recommendations.length > 0) {
                 console.log('Displaying results...');
                 currentData = data;
                 displayResults(data);
                 updateNavStatus('Analysis complete', 'ready');
-            } else if (data.error) {
-                console.error('ML API Error:', data.error);
-                updateNavStatus('Error: ' + data.error, 'error');
-                showError(data.error);
             } else {
                 console.error('Unexpected API response format:', data);
-                updateNavStatus('Error: Invalid response format', 'error');
-                showError('Invalid response format from server');
+                console.error('Missing or empty data fields');
+                updateNavStatus('Error: No results generated', 'error');
+                showError('No model recommendations were generated. Please check your dataset.');
             }
         })
         .catch(error => {
@@ -305,6 +321,31 @@
         console.log('ML Selection page loaded');
         if (window.datasetInfo) {
             console.log('Dataset loaded:', window.datasetInfo);
+        }
+        
+        // Add explain buttons when results are displayed
+        const observer = new MutationObserver(() => {
+            document.querySelectorAll('.model-card').forEach(card => {
+                if (!card.querySelector('.explain-ai-btn')) {
+                    const modelName = card.dataset.model;
+                    const actions = card.querySelector('.model-actions');
+                    if (actions && modelName) {
+                        const btn = document.createElement('button');
+                        btn.className = 'action-btn explain-ai-btn';
+                        btn.innerHTML = '<i class="fas fa-robot"></i> Explain with AI';
+                        btn.onclick = function() {
+                            const scoreText = card.querySelector('.metric-value')?.textContent || '0';
+                            const score = parseFloat(scoreText) / 100;
+                            explainMLResults(modelName, {mean_score: score}, window.datasetInfo || {});
+                        };
+                        actions.insertBefore(btn, actions.firstChild);
+                    }
+                }
+            });
+        });
+        const resultsContainer = document.getElementById('results');
+        if (resultsContainer) {
+            observer.observe(resultsContainer, {childList: true, subtree: true});
         }
     });
     </script>

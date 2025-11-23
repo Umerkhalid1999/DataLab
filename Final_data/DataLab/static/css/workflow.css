@@ -22,6 +22,21 @@
     font-weight: 700;
 }
 
+.header-content .btn-light {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-weight: 600;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+}
+
+.header-content .btn-light:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
 .header-content .subtitle {
     font-size: 1.1rem;
     opacity: 0.9;
@@ -30,8 +45,10 @@
 
 .dataset-info {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     align-items: center;
+    flex-wrap: wrap;
+    margin-top: 15px;
 }
 
 .dataset-name {

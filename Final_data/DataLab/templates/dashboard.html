@@ -3,10 +3,10 @@
 {% block title %}Dashboard - DataLab{% endblock %}
 
 {% block head %}
-<!-- Custom CSS -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<!-- Custom CSS with cache busting -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=20251024230000">
 <!-- Add AI assistant CSS -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_assistant.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_assistant.css') }}?v=20251024230000">
 {% endblock %}
 
 {% block content %}
@@ -14,8 +14,10 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
-      <i class="fas fa-chart-line"></i>
-      <h2>DataLab</h2>
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="DataLab" height="45" style="filter: brightness(0) invert(1);">
+      <div style="margin-top: 10px;">
+        <span style="display: inline-block; font-size: 0.7rem; font-weight: 600; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);">v1.0.0 Prototype</span>
+      </div>
     </div>
     <ul class="nav-menu">
       <li class="nav-item active">
@@ -40,7 +42,19 @@
         <a href="/ml/jupyterlite" target="_blank"><i class="fas fa-code"></i> Python Notebook</a>
       </li>
       <li class="nav-item">
-        <a href="{{ url_for('ai_assistant_page') }}"><i class="fas fa-robot"></i> AI Assistant</a>
+        <a href="/workflow"><i class="fas fa-tools"></i> Open Mode Workflow</a>
+      </li>
+      <li class="nav-item">
+        <a href="/pycaret-pipeline"><i class="fas fa-robot"></i> End-to-End Pipeline</a>
+      </li>
+      <li class="nav-item">
+        <a href="/notebook-pipeline"><i class="fas fa-book"></i> Interactive Notebook</a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('ai_assistant_page') }}"><i class="fas fa-comments"></i> AI Assistant</a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('community') }}"><i class="fas fa-users"></i> Community</a>
       </li>
       <li class="nav-item">
         <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -65,6 +79,74 @@
     </div>
 
     <div class="dashboard-content">
+      <!-- Prototype Limitations Notice -->
+      <div class="alert prototype-limitations" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-left: 4px solid #F59E0B; border-radius: 12px; padding: 16px 20px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        <div class="d-flex align-items-start">
+          <div style="flex-shrink: 0; margin-right: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div style="flex-grow: 1;">
+            <h6 style="margin: 0 0 8px 0; color: #92400E; font-weight: 600; font-size: 0.95rem;">
+              <i class="fas fa-flask me-2"></i>Prototype Version (v1.0.0)
+            </h6>
+            <p style="margin: 0 0 10px 0; color: #92400E; font-size: 0.85rem; line-height: 1.5;">
+              DataLab is currently in prototype phase for educational and demonstration purposes. Some features may have limitations.
+            </p>
+            <button class="btn btn-sm" style="background: white; color: #92400E; border: 1px solid #F59E0B; font-size: 0.8rem; padding: 4px 12px; font-weight: 600;" type="button" data-bs-toggle="collapse" data-bs-target="#limitationsDetails" aria-expanded="false">
+              <i class="fas fa-info-circle me-1"></i>View Limitations
+            </button>
+            <div class="collapse mt-3" id="limitationsDetails">
+              <div style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="limitation-item" style="padding: 10px; border-left: 3px solid #F59E0B;">
+                      <h6 style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px;">
+                        <i class="fas fa-tachometer-alt me-2" style="color: #F59E0B;"></i>Performance
+                      </h6>
+                      <p style="font-size: 0.8rem; color: #6B7280; margin: 0;">Large datasets (>1000 rows) are sampled for faster analysis</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="limitation-item" style="padding: 10px; border-left: 3px solid #F59E0B;">
+                      <h6 style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px;">
+                        <i class="fas fa-shield-alt me-2" style="color: #F59E0B;"></i>Security
+                      </h6>
+                      <p style="font-size: 0.8rem; color: #6B7280; margin: 0;">Not recommended for production or sensitive data</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="limitation-item" style="padding: 10px; border-left: 3px solid #F59E0B;">
+                      <h6 style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px;">
+                        <i class="fas fa-plug me-2" style="color: #F59E0B;"></i>API Dependencies
+                      </h6>
+                      <p style="font-size: 0.8rem; color: #6B7280; margin: 0;">Some features require external API keys (OpenAI, Mistral)</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="limitation-item" style="padding: 10px; border-left: 3px solid #F59E0B;">
+                      <h6 style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px;">
+                        <i class="fas fa-file-csv me-2" style="color: #F59E0B;"></i>Data Formats
+                      </h6>
+                      <p style="font-size: 0.8rem; color: #6B7280; margin: 0;">Primarily designed for CSV/structured tabular data</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="best-use-case" style="margin-top: 12px; padding: 10px; background: #ECFDF5; border-radius: 6px; border-left: 3px solid #10B981;">
+                  <p style="font-size: 0.8rem; color: #065F46; margin: 0;">
+                    <i class="fas fa-check-circle me-2" style="color: #10B981;"></i>
+                    <strong>Best for:</strong> Educational purposes, proof-of-concept demos, and learning data science workflows
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- File Upload Section -->
       <div class="upload-section" id="uploadArea">
         <h3>Upload a new dataset</h3>
@@ -97,7 +179,7 @@
         <div class="row" id="datasetsContainer">
           {% for dataset in datasets %}
           <div class="col-md-6 col-lg-4 mb-4 dataset-item">
-            <div class="card dataset-card h-100" data-id="{{ dataset.id }}">
+            <div class="card dataset-card h-100" data-id="{{ dataset.id }}" data-quality-components='{{ dataset.quality_components|tojson if dataset.quality_components else "{}" }}'>
               <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 text-truncate" title="{{ dataset.name }}">
                   {% if dataset.file_type == 'csv' %}
@@ -125,6 +207,7 @@
                     <li><a class="dropdown-item" href="/ml/{{ dataset.id }}"><i class="fas fa-brain me-2"></i>ML Selection</a></li>
                     <li><a class="dropdown-item" href="/workflow/{{ dataset.id }}"><i class="fas fa-project-diagram me-2"></i>Workflow</a></li>
                     <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item clean-dataset" href="#" data-id="{{ dataset.id }}" data-name="{{ dataset.name }}"><i class="fas fa-broom me-2 text-info"></i>Clean Dataset</a></li>
                     <li><a class="dropdown-item analyze-with-ai" href="#" data-id="{{ dataset.id }}" data-name="{{ dataset.name }}"><i class="fas fa-robot me-2"></i>Analyze with AI</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item text-danger delete-dataset" href="#" data-id="{{ dataset.id }}"><i class="fas fa-trash-alt me-2"></i>Delete</a></li>
@@ -134,9 +217,25 @@
               <div class="card-body">
                 <div class="mb-3">
                   <div class="d-flex justify-content-between mb-1">
-                    <span>Quality Score</span>
-                    <span class="fw-bold">{{ dataset.quality_score }}%</span>
+                    <span>
+                      Quality Score
+                      <i class="fas fa-info-circle quality-score-info" 
+                         data-bs-toggle="modal" 
+                         data-bs-target="#qualityScoreModal"
+                         data-dataset-id="{{ dataset.id }}"
+                         data-quality-score="{{ dataset.quality_score }}"
+                         data-quality-components='{{ dataset.quality_components|tojson if dataset.quality_components else "{}" }}'
+                         style="cursor: pointer;"></i>
+                    </span>
+                    <span class="fw-bold quality-score-value">{{ dataset.quality_score }}%</span>
                   </div>
+                  {% if dataset.quality_components %}
+                  <div class="text-muted small mt-1">
+                    <div>Missing: {{ dataset.quality_components.missing_values.count if dataset.quality_components.missing_values else 0 }}</div>
+                    <div>Duplicates: {{ dataset.quality_components.duplicate_rows.count if dataset.quality_components.duplicate_rows else 0 }}</div>
+                    <div>Outliers: {{ dataset.quality_components.outliers.count if dataset.quality_components.outliers else 0 }}</div>
+                  </div>
+                  {% endif %}
                   <div class="quality-indicator">
                     <div class="quality-bar" style="width: {{ dataset.quality_score }}%;
                       background-color:
@@ -178,6 +277,9 @@
                   <a href="{{ url_for('visualization', dataset_id=dataset.id) }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-chart-bar me-1"></i>Visualize
                   </a>
+                  <button class="btn btn-info btn-sm clean-dataset" data-id="{{ dataset.id }}" data-name="{{ dataset.name }}">
+                    <i class="fas fa-broom me-1"></i>Clean Dataset
+                  </button>
                   <a href="{{ url_for('data_preview', dataset_id=dataset.id) }}" class="btn btn-outline-secondary btn-sm">Analyze</a>
                 </div>
               </div>
@@ -192,6 +294,62 @@
           <p class="text-muted">Upload your first dataset to get started</p>
         </div>
         {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quality Score Information Modal -->
+<div class="modal fade" id="qualityScoreModal" tabindex="-1" aria-labelledby="qualityScoreModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="qualityScoreModalLabel">
+          <i class="fas fa-calculator me-2"></i>Quality Score Breakdown
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Transparent Calculation:</strong> Quality Score = 100 - (Missing Penalty + Duplicate Penalty + Outlier Penalty)
+        </div>
+
+        <div id="qualityScoreBreakdown">
+          <!-- Dynamic content will be inserted here -->
+        </div>
+
+        <hr>
+
+        <h6 class="mb-3"><i class="fas fa-book me-2"></i>ISO 25012 Data Quality Dimensions</h6>
+        
+        <div class="quality-metric mb-2">
+          <h6><i class="fas fa-check-circle text-success me-2"></i>1. Completeness (30%)</h6>
+          <p class="text-muted small mb-0">Degree to which data is not missing</p>
+        </div>
+
+        <div class="quality-metric mb-2">
+          <h6><i class="fas fa-fingerprint text-primary me-2"></i>2. Uniqueness (20%)</h6>
+          <p class="text-muted small mb-0">Degree to which data is free from duplicates</p>
+        </div>
+
+        <div class="quality-metric mb-2">
+          <h6><i class="fas fa-balance-scale text-info me-2"></i>3. Consistency (20%)</h6>
+          <p class="text-muted small mb-0">Degree to which data follows patterns</p>
+        </div>
+
+        <div class="quality-metric mb-2">
+          <h6><i class="fas fa-shield-alt text-warning me-2"></i>4. Validity (15%)</h6>
+          <p class="text-muted small mb-0">Degree to which data conforms to formats</p>
+        </div>
+
+        <div class="quality-metric mb-2">
+          <h6><i class="fas fa-bullseye text-danger me-2"></i>5. Accuracy (15%)</h6>
+          <p class="text-muted small mb-0">Degree to which data represents reality</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
       </div>
     </div>
   </div>
@@ -265,9 +423,227 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/intelligent_display.js') }}"></script>
 <!-- Add AI assistant JavaScript -->
 <script src="{{ url_for('static', filename='js/ai_assistant.js') }}"></script>
 <script>
+  // Quality Score Modal Handler
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle quality score info clicks
+    document.querySelectorAll('.quality-score-info').forEach(icon => {
+      icon.addEventListener('click', function() {
+        const qualityScore = parseFloat(this.getAttribute('data-quality-score'));
+        const componentsData = this.getAttribute('data-quality-components');
+        
+        let components = {};
+        try {
+          components = JSON.parse(componentsData || '{}');
+        } catch(e) {
+          console.error('Error parsing quality components:', e);
+        }
+        
+        const breakdownDiv = document.getElementById('qualityScoreBreakdown');
+        
+        if (components && Object.keys(components).length > 0) {
+          // Show actual calculation
+          let html = `
+            <div class="card mb-3">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Final Quality Score: ${qualityScore.toFixed(1)}%</h6>
+              </div>
+              <div class="card-body">
+                <div class="progress mb-2" style="height: 30px;">
+                  <div class="progress-bar ${qualityScore >= 80 ? 'bg-success' : qualityScore >= 60 ? 'bg-warning' : 'bg-danger'}" 
+                       style="width: ${qualityScore}%;" role="progressbar">
+                    ${qualityScore.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Detailed Calculation</h6>
+          `;
+          
+          // Completeness
+          if (components.completeness) {
+            const comp = components.completeness;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-check-circle text-success me-2"></i>Completeness</h6>
+                  <p class="mb-1">Score: <strong>${comp.score}%</strong> | Weight: <strong>${(comp.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-muted small">Missing: ${comp.missing_count} (${comp.missing_percentage}%)</p>
+                </div>
+              </div>
+            `;
+          } else if (components.missing_values) {
+            const mv = components.missing_values;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-exclamation-triangle text-danger me-2"></i>Missing Values</h6>
+                  <p class="mb-1">Count: <strong>${mv.count}</strong> (${mv.percentage.toFixed(2)}% of data)</p>
+                  <p class="mb-1">Weight: <strong>${(mv.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-danger">Penalty: <strong>-${mv.penalty.toFixed(2)} points</strong></p>
+                </div>
+              </div>
+            `;
+          }
+          
+          
+          // Uniqueness
+          if (components.uniqueness) {
+            const uniq = components.uniqueness;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-fingerprint text-primary me-2"></i>Uniqueness</h6>
+                  <p class="mb-1">Score: <strong>${uniq.score}%</strong> | Weight: <strong>${(uniq.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-muted small">Duplicates: ${uniq.duplicate_count} (${uniq.duplicate_percentage}%)</p>
+                </div>
+              </div>
+            `;
+          } else if (components.duplicate_rows) {
+            const dr = components.duplicate_rows;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-clone text-warning me-2"></i>Duplicate Rows</h6>
+                  <p class="mb-1">Count: <strong>${dr.count}</strong> (${dr.percentage.toFixed(2)}% of rows)</p>
+                  <p class="mb-1">Weight: <strong>${(dr.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-warning">Penalty: <strong>-${dr.penalty.toFixed(2)} points</strong></p>
+                </div>
+              </div>
+            `;
+          }
+          
+          
+          // Consistency
+          if (components.consistency) {
+            const cons = components.consistency;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-balance-scale text-info me-2"></i>Consistency</h6>
+                  <p class="mb-1">Score: <strong>${cons.score}%</strong> | Weight: <strong>${(cons.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-muted small">Outliers: ${cons.outlier_count} | Infinite: ${cons.infinite_count}</p>
+                </div>
+              </div>
+            `;
+          } else if (components.outliers) {
+            const ol = components.outliers;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-chart-line text-info me-2"></i>Outliers</h6>
+                  <p class="mb-1">Count: <strong>${ol.count}</strong> (${ol.percentage.toFixed(2)}%)</p>
+                  <p class="mb-1">Weight: <strong>${(ol.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-info">Penalty: <strong>-${ol.penalty.toFixed(2)} points</strong></p>
+                </div>
+              </div>
+            `;
+          }
+          
+          
+          // Validity
+          if (components.validity) {
+            const val = components.validity;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-shield-alt text-warning me-2"></i>Validity</h6>
+                  <p class="mb-1">Score: <strong>${val.score}%</strong> | Weight: <strong>${(val.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-muted small">Empty strings: ${val.empty_strings} | Type mismatches: ${val.dtype_mismatches}</p>
+                </div>
+              </div>
+            `;
+          } else if (components.dtype_issues) {
+            const dt = components.dtype_issues;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-code text-primary me-2"></i>Data Type Issues</h6>
+                  <p class="mb-1">Count: <strong>${dt.count}</strong> (${dt.percentage.toFixed(2)}%)</p>
+                  <p class="mb-1">Weight: <strong>${(dt.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-primary">Penalty: <strong>-${dt.penalty.toFixed(2)} points</strong></p>
+                </div>
+              </div>
+            `;
+          }
+          
+          
+          // Accuracy
+          if (components.accuracy) {
+            const acc = components.accuracy;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-bullseye text-danger me-2"></i>Accuracy</h6>
+                  <p class="mb-1">Score: <strong>${acc.score}%</strong> | Weight: <strong>${(acc.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-muted small">Extreme values: ${acc.extreme_values}</p>
+                </div>
+              </div>
+            `;
+          } else if (components.infinite_values) {
+            const inf = components.infinite_values;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-infinity text-secondary me-2"></i>Infinite Values</h6>
+                  <p class="mb-1">Count: <strong>${inf.count}</strong> (${inf.percentage.toFixed(2)}%)</p>
+                  <p class="mb-1">Weight: <strong>${(inf.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-secondary">Penalty: <strong>-${inf.penalty.toFixed(2)} points</strong></p>
+                </div>
+              </div>
+            `;
+          }
+          
+          // Empty Strings
+          if (components.empty_strings) {
+            const es = components.empty_strings;
+            html += `
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h6><i class="fas fa-font text-muted me-2"></i>Empty Strings</h6>
+                  <p class="mb-1">Count: <strong>${es.count}</strong> (${es.percentage.toFixed(2)}%)</p>
+                  <p class="mb-1">Weight: <strong>${(es.weight * 100).toFixed(0)}%</strong></p>
+                  <p class="mb-0 text-muted">Penalty: <strong>-${es.penalty.toFixed(2)} points</strong></p>
+                </div>
+              </div>
+            `;
+          }
+          
+          // Calculation Summary
+          const totalPenalty = (components.missing_values?.penalty || 0) + 
+                               (components.duplicate_rows?.penalty || 0) + 
+                               (components.outliers?.penalty || 0) +
+                               (components.dtype_issues?.penalty || 0) +
+                               (components.infinite_values?.penalty || 0) +
+                               (components.empty_strings?.penalty || 0);
+          
+          html += `
+            <div class="alert alert-primary mt-3">
+              <h6><i class="fas fa-equals me-2"></i>Calculation</h6>
+              <p class="mb-1">Starting Score: <strong>100</strong></p>
+              <p class="mb-1">Total Penalties: <strong>-${totalPenalty.toFixed(2)}</strong></p>
+              <hr>
+              <p class="mb-0">Final Score: <strong>${qualityScore.toFixed(1)}%</strong></p>
+            </div>
+          `;
+          
+          breakdownDiv.innerHTML = html;
+        } else {
+          breakdownDiv.innerHTML = `
+            <div class="alert alert-warning">
+              <i class="fas fa-info-circle me-2"></i>
+              Detailed quality components not available for this dataset.
+            </div>
+          `;
+        }
+      });
+    });
+  });
+  
   // AI Insights handler
   document.addEventListener('DOMContentLoaded', function() {
     // Handle view AI insights buttons

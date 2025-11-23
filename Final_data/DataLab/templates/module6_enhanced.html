@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Engineering - DataLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ai_assistant.css') }}?v=20251024213500">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary-color: #8b5cf6;
+            --accent-color: #ec4899;
+            --success-color: #10b981;
+            --info-color: #3b82f6;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #0f172a;
+            --darker-bg: #020617;
+            --light-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --gradient-secondary: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.16);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8f9fa;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            color: #2d3748;
+        }
+
+        .gradient-header {
+            background: #667eea;
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .gradient-header h1 {
+            font-weight: 700;
+            color: white;
+            font-size: 1.75em;
+        }
+
+        .gradient-header p {
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+        }
+
+        .gradient-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 24px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 24px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            background: white;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .mode-btn.active {
+            border-color: #667eea;
+            background: #f3f4ff;
+        }
+
+        .mode-btn i {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .mode-btn h4 {
+            margin: 10px 0 5px 0;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .mode-btn p {
+            font-size: 0.9em;
+            color: #718096;
+            margin: 0;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .section-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .section-card h3 {
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4em;
+        }
+
+        .section-card h3 i {
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        /* Enhanced Alert Boxes */
+        .alert {
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            border: 1px solid;
+        }
+
+        .alert i {
+            margin-right: 10px;
+        }
+
+        .info-box, .alert-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #2196f3;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-box i, .alert-info i {
+            color: #2196f3;
+        }
+
+        .info-box h5, .alert-info h5 {
+            color: #1565c0;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .warning-box, .alert-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border-color: #ff9800;
+            border-left: 4px solid #ff9800;
+        }
+
+        .warning-box i, .alert-warning i {
+            color: #ff9800;
+        }
+
+        .warning-box h5, .alert-warning h5 {
+            color: #e65100;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .success-box, .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-color: #4caf50;
+            border-left: 4px solid #4caf50;
+        }
+
+        .success-box i, .alert-success i {
+            color: #4caf50;
+        }
+
+        .success-box h5, .alert-success h5 {
+            color: #2e7d32;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .alert-danger {
+            background: #ffebee;
+            color: #c62828;
+            border-color: #f44336;
+            border-left: 4px solid #f44336;
+        }
+
+        .alert-danger i {
+            color: #f44336;
+        }
+
+        /* Data Science Icons Enhancement */
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4ff;
+            border-radius: 10px;
+            margin: 0 auto 16px;
+        }
+
+        .feature-icon i {
+            font-size: 2em;
+            color: #667eea;
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #667eea;
+            line-height: 1.2;
+        }
+
+        .metric-label {
+            color: #718096;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        /* Code Snippet Styling */
+        .code-snippet {
+            background: #2d3748;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            border: 1px solid #4a5568;
+        }
+
+        .code-snippet pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .code-snippet code {
+            color: #90cdf4;
+        }
+
+        /* Enhanced Lists */
+        .styled-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .styled-list li {
+            padding: 10px 12px 10px 35px;
+            margin: 6px 0;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            position: relative;
+            border: 1px solid #e2e8f0;
+        }
+
+        .styled-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .styled-list li:hover {
+            background: #f7fafc;
+        }
+
+        .technique-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .technique-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .technique-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .technique-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .technique-title h5 {
+            margin: 0;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+
+        .technique-title i {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .help-icon {
+            cursor: help;
+            color: #667eea;
+            font-size: 1.1em;
+            transition: all 0.2s ease;
+        }
+
+        .help-icon:hover {
+            color: #5568d3;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 50px 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f7fafc;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-area i {
+            font-size: 3em;
+            color: #667eea;
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        .upload-area h4 {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 1.2em;
+        }
+
+        .upload-area p {
+            color: #718096;
+            margin: 0;
+            font-size: 0.9em;
+        }
+
+        .upload-area .file-types {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            color: #a0aec0;
+            font-size: 0.85em;
+        }
+
+        /* Data Science Visualization Elements */
+        .data-viz-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            background: #f3f4ff;
+            margin-right: 10px;
+        }
+
+        .data-viz-icon i {
+            font-size: 1.4em;
+            color: #667eea;
+        }
+
+        /* Progress Bar Enhancement */
+        .progress {
+            height: 8px;
+            border-radius: 8px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: #667eea;
+            border-radius: 8px;
+        }
+
+        .btn-primary-gradient {
+            background: #667eea;
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary-gradient:hover {
+            background: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            margin: 4px;
+            font-size: 0.85em;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-content {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-content h4 {
+            color: #2d3748;
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .loading-content p {
+            color: #718096;
+            margin: 10px 0 0 0;
+        }
+
+        /* AI Assistant Welcome Message */
+        .assistant-welcome {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 0 0 12px 0;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .assistant-welcome p {
+            margin: 6px 0;
+            color: #2d3748;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .assistant-welcome p:first-child {
+            margin-top: 0;
+        }
+
+        .assistant-welcome p:last-child {
+            margin-bottom: 0;
+        }
+
+        .assistant-welcome strong {
+            color: #667eea;
+            font-size: 1.05em;
+        }
+
+        .assistant-welcome ul {
+            margin: 6px 0;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+
+        .assistant-welcome li {
+            margin: 4px 0;
+            color: #4a5568;
+            font-size: 13px;
+        }
+
+        .assistant-welcome em {
+            color: #718096;
+            font-size: 0.95em;
+        }
+
+        /* Professional Button Styles */
+        .btn {
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 10px 20px;
+            transition: all 0.2s ease;
+            font-size: 0.95em;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+            box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3);
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+            box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
+        }
+
+        .btn-light {
+            background: white;
+            color: #667eea;
+            border: 1px solid white;
+        }
+
+        .btn-light:hover {
+            background: #f7fafc;
+            color: #5568d3;
+        }
+
+        .btn i {
+            margin-right: 6px;
+        }
+
+        /* Professional Table Styles */
+        .table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .table thead {
+            background: #667eea;
+            color: white;
+        }
+
+        .table thead th {
+            border: none;
+            font-weight: 600;
+            padding: 12px 16px;
+            font-size: 0.9em;
+        }
+
+        .table tbody tr {
+            transition: background 0.2s ease;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .table tbody td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: #2d3748;
+        }
+
+        /* Data Science Themed Elements */
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-card .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6em;
+            margin-bottom: 12px;
+            background: #f3f4ff;
+            color: #667eea;
+        }
+
+        .stat-card h4 {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            color: #667eea;
+        }
+
+        .stat-card p {
+            color: #718096;
+            margin: 0;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        /* Comparison Tables Enhancement */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 16px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .comparison-table thead {
+            background: #667eea;
+            color: white;
+        }
+
+        .comparison-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            border: none;
+        }
+
+        .comparison-table tbody tr {
+            background: white;
+            transition: background 0.2s ease;
+        }
+
+        .comparison-table tbody tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: #edf2f7;
+        }
+
+        .comparison-table td {
+            padding: 12px 16px;
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        /* Badge Styles */
+        .badge {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.8em;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .badge-info {
+            background: #3182ce;
+            color: white;
+        }
+
+        /* Form Enhancements */
+        .form-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            display: block;
+            font-size: 0.95em;
+            letter-spacing: 0.2px;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 0.95em;
+            transition: border 0.2s ease;
+            background: white;
+            color: #2d3748;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+
+        .form-control:hover, .form-select:hover {
+            border-color: #a0aec0;
+        }
+
+        select.form-control, select.form-select {
+            cursor: pointer;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group-text {
+            background: #f7fafc;
+            border: 1px solid #cbd5e0;
+            color: #4a5568;
+            font-weight: 600;
+            border-radius: 6px 0 0 6px;
+            padding: 10px 12px;
+        }
+
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .manual-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .control-group {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .control-group:hover {
+            border-color: #cbd5e0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .result-preview {
+            background: #2d3748;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e2e8f0;
+            border: 1px solid #4a5568;
+        }
+
+        .result-preview code {
+            color: #90cdf4;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result-preview .result-label {
+            color: #cbd5e0;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+            font-size: 0.85em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #666;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            color: var(--primary-color);
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background: linear-gradient(135deg, var(--primary-color)20 0%, var(--secondary-color)20 100%);
+            color: var(--primary-color);
+        }
+
+        .tooltip-icon {
+            color: #2196f3;
+            cursor: help;
+            margin-left: 5px;
+        }
+
+        /* Enhanced Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 600;
+            line-height: 1.4;
+            color: #2d3748;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+        }
+
+        h2 {
+            font-size: 1.75em;
+            margin-bottom: 0.6em;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        h4 {
+            font-size: 1.25em;
+            margin-bottom: 0.7em;
+        }
+
+        h5 {
+            font-size: 1.1em;
+            margin-bottom: 0.7em;
+        }
+
+        h6 {
+            font-size: 1em;
+            margin-bottom: 0.8em;
+        }
+
+        p {
+            font-size: 1em;
+            line-height: 1.6;
+            margin-bottom: 1em;
+            color: #4a5568;
+        }
+
+        .text-primary {
+            color: #667eea !important;
+        }
+
+        .text-secondary {
+            color: #718096 !important;
+        }
+
+        .text-muted {
+            color: #a0aec0 !important;
+        }
+
+        .text-bold {
+            font-weight: 700;
+        }
+
+        .text-semibold {
+            font-weight: 600;
+        }
+
+        .text-medium {
+            font-weight: 500;
+        }
+
+        /* Spacing Utilities */
+        .mb-8 { margin-bottom: 8px !important; }
+        .mb-12 { margin-bottom: 12px !important; }
+        .mb-16 { margin-bottom: 16px !important; }
+        .mb-20 { margin-bottom: 20px !important; }
+        .mb-24 { margin-bottom: 24px !important; }
+        .mb-32 { margin-bottom: 32px !important; }
+        .mb-40 { margin-bottom: 40px !important; }
+
+        .mt-8 { margin-top: 8px !important; }
+        .mt-12 { margin-top: 12px !important; }
+        .mt-16 { margin-top: 16px !important; }
+        .mt-20 { margin-top: 20px !important; }
+        .mt-24 { margin-top: 24px !important; }
+        .mt-32 { margin-top: 32px !important; }
+        .mt-40 { margin-top: 40px !important; }
+
+        .p-8 { padding: 8px !important; }
+        .p-12 { padding: 12px !important; }
+        .p-16 { padding: 16px !important; }
+        .p-20 { padding: 20px !important; }
+        .p-24 { padding: 24px !important; }
+        .p-32 { padding: 32px !important; }
+        .p-40 { padding: 40px !important; }
+
+        .gap-8 { gap: 8px !important; }
+        .gap-12 { gap: 12px !important; }
+        .gap-16 { gap: 16px !important; }
+        .gap-20 { gap: 20px !important; }
+        .gap-24 { gap: 24px !important; }
+
+        /* Section Dividers */
+        .section-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 32px 0;
+        }
+
+        .section-divider-thick {
+            height: 2px;
+            background: #cbd5e0;
+            margin: 40px 0;
+        }
+
+        /* Text Highlights */
+        .highlight {
+            background: #f3f4ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .highlight-box {
+            background: #f3f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin: 12px 0;
+        }
+
+        /* Card Grid System */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        .card-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        .card-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        /* Responsive Grid Adjustments */
+        @media (max-width: 1024px) {
+            .card-grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2em; }
+            h2 { font-size: 1.9em; }
+            h3 { font-size: 1.5em; }
+
+            .card-grid-2, .card-grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .section-card {
+                padding: 24px;
+            }
+
+            .main-container {
+                padding: 0 15px;
+            }
+        }
+
+        /* Professional Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-indicator::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-danger {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Loading States */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Enhanced Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="gradient-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-magic"></i> Feature Engineering Studio</h1>
+                    <p class="mb-0">Transform your data with powerful feature engineering techniques</p>
+                </div>
+                <a href="/dashboard" class="btn btn-light">
+                    <i class="fas fa-home"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Educational Banner -->
+        <div class="info-box">
+            <i class="fas fa-lightbulb fa-2x float-start me-3"></i>
+            <h5>What is Feature Engineering?</h5>
+            <p class="mb-0">Feature engineering is the process of creating new features or modifying existing ones to improve machine learning model performance. It involves transformations, combinations, and selections of variables that make patterns in the data more evident to learning algorithms.</p>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <div class="mode-btn active" id="automatedModeBtn" onclick="switchMode('automated')">
+                <i class="fas fa-robot"></i>
+                <h4>Automated Mode</h4>
+                <p>AI-powered feature engineering with intelligent recommendations</p>
+            </div>
+            <div class="mode-btn" id="manualModeBtn" onclick="switchMode('manual')">
+                <i class="fas fa-hand-sparkles"></i>
+                <h4>Manual Mode</h4>
+                <p>Take control and create features with guided tools</p>
+            </div>
+        </div>
+
+        <!-- Learning Center (Collapsible) -->
+        <div class="section-card" style="border-left-color: #2196f3;">
+            <div style="cursor: pointer;" onclick="toggleLearningCenter()">
+                <h3>
+                    <i class="fas fa-graduation-cap"></i> Learning Center: Technique Comparisons
+                    <i class="fas fa-chevron-down float-end" id="learningChevron" style="font-size: 0.8em; transition: transform 0.3s;"></i>
+                </h3>
+            </div>
+
+            <div id="learningCenterContent" style="display: none; margin-top: 20px;">
+                <!-- Transformations Comparison -->
+                <div class="comparison-section mb-4">
+                    <h5 style="color: var(--primary-color);">
+                        <i class="fas fa-exchange-alt"></i> Feature Transformations
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-square-root-alt text-success"></i> Logarithmic Transform</h6>
+                                <p><strong>✅ Use When:</strong> Data is right-skewed, has exponential growth, or wide range</p>
+                                <p><strong>📝 Examples:</strong> Income, prices, population</p>
+                                <p><strong>⚠️ Requirement:</strong> All values must be positive</p>
+                                <p><strong>📊 Effect:</strong> Compresses large values, stretches small values</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-superscript text-info"></i> Power Transform</h6>
+                                <p><strong>✅ Use When:</strong> Need to adjust skewness or create non-linear relationships</p>
+                                <p><strong>📝 Examples:</strong> Square root for count data, square for area calculations</p>
+                                <p><strong>💡 Types:</strong> √x (0.5), x² (2), x³ (3), custom</p>
+                                <p><strong>📊 Effect:</strong> Changes distribution shape based on power</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Combinations Comparison -->
+                <div class="comparison-section mb-4">
+                    <h5 style="color: var(--primary-color);">
+                        <i class="fas fa-plus-circle"></i> Feature Combinations
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-divide text-warning"></i> Ratio Features</h6>
+                                <p><strong>✅ Use When:</strong> Relative proportion is more important than absolute values</p>
+                                <p><strong>📝 Examples:</strong> price/sqft, profit/revenue, speed = distance/time</p>
+                                <p><strong>⚠️ Caution:</strong> Denominator cannot contain zeros</p>
+                                <p><strong>🎯 Benefit:</strong> Normalizes by scale, reveals efficiency metrics</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-times text-danger"></i> Interaction Features</h6>
+                                <p><strong>✅ Use When:</strong> Two features have a combined effect on the target</p>
+                                <p><strong>📝 Examples:</strong> area × quality, education × experience</p>
+                                <p><strong>💡 Insight:</strong> Captures multiplicative relationships</p>
+                                <p><strong>🎯 Benefit:</strong> Helps models learn non-linear patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dimensionality Reduction Comparison (THE MAIN ONE!) -->
+                <div class="comparison-section mb-4">
+                    <h5 style="color: var(--primary-color);">
+                        <i class="fas fa-compress-arrows-alt"></i> Dimensionality Reduction Techniques
+                    </h5>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Why reduce dimensions?</strong>
+                        Too many features can lead to overfitting, slow training, and difficulty in visualization. These techniques help reduce features while preserving important information.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="technique-card" style="height: 100%; border: 2px solid #4caf50;">
+                                <h6><i class="fas fa-check-circle text-success"></i> PCA (Principal Component Analysis)</h6>
+                                <p><strong>🎯 Goal:</strong> Find directions of maximum variance</p>
+                                <p><strong>✅ Use When:</strong>
+                                    <br>• You have many correlated features
+                                    <br>• You don't have class labels (unsupervised)
+                                    <br>• You want to preserve overall variance
+                                </p>
+                                <p><strong>⚙️ How it works:</strong> Creates new features (principal components) that are linear combinations of original features</p>
+                                <p><strong>📊 Output:</strong> Ranked components by variance explained</p>
+                                <p><strong>🔧 Best for:</strong> Data compression, noise reduction, visualization</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="technique-card" style="height: 100%; border: 2px solid #2196f3;">
+                                <h6><i class="fas fa-bullseye text-primary"></i> LDA (Linear Discriminant Analysis)</h6>
+                                <p><strong>🎯 Goal:</strong> Maximize class separation</p>
+                                <p><strong>✅ Use When:</strong>
+                                    <br>• You have class labels (supervised)
+                                    <br>• You want to maximize class discrimination
+                                    <br>• Classification is your main task
+                                </p>
+                                <p><strong>⚙️ How it works:</strong> Finds feature combinations that best separate different classes</p>
+                                <p><strong>📊 Output:</strong> Max (classes-1) discriminant components</p>
+                                <p><strong>🔧 Best for:</strong> Classification problems, class separability</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="technique-card" style="height: 100%; border: 2px solid #ff9800;">
+                                <h6><i class="fas fa-project-diagram text-warning"></i> t-SNE</h6>
+                                <p><strong>🎯 Goal:</strong> Preserve local neighborhood structure</p>
+                                <p><strong>✅ Use When:</strong>
+                                    <br>• You need 2D/3D visualization
+                                    <br>• Finding clusters is important
+                                    <br>• You have complex, non-linear data
+                                </p>
+                                <p><strong>⚙️ How it works:</strong> Maps high-dimensional points to 2D/3D while preserving distances</p>
+                                <p><strong>⚠️ Limitation:</strong> Slow on large datasets, mainly for visualization</p>
+                                <p><strong>🔧 Best for:</strong> Data visualization, cluster discovery</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-lightbulb"></i> Quick Decision Guide:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Have labels & want to classify?</strong> → Use <span class="badge bg-primary">LDA</span></li>
+                            <li><strong>No labels & want to reduce features?</strong> → Use <span class="badge bg-success">PCA</span></li>
+                            <li><strong>Need to visualize high-dimensional data?</strong> → Use <span class="badge bg-warning text-dark">t-SNE</span></li>
+                            <li><strong>Want to keep all features but remove noise?</strong> → Use <span class="badge bg-success">PCA</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Scaling Comparison -->
+                <div class="comparison-section mb-4">
+                    <h5 style="color: var(--primary-color);">
+                        <i class="fas fa-balance-scale"></i> Feature Scaling Methods
+                    </h5>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>When to scale:</strong>
+                        Most ML algorithms (SVM, KNN, Neural Networks) perform better when features are on similar scales. Tree-based models (Random Forest, XGBoost) don't require scaling.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-chart-line text-primary"></i> Standardization (Z-score)</h6>
+                                <p><strong>📐 Formula:</strong> (x - mean) / std</p>
+                                <p><strong>📊 Result:</strong> Mean = 0, Std = 1</p>
+                                <p><strong>✅ Use When:</strong> Data is normally distributed, or you want to preserve outliers</p>
+                                <p><strong>🎯 Best for:</strong> Algorithms that assume normality (Linear Regression, Logistic Regression)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-arrows-alt-h text-success"></i> Min-Max Normalization</h6>
+                                <p><strong>📐 Formula:</strong> (x - min) / (max - min)</p>
+                                <p><strong>📊 Result:</strong> Range = [0, 1]</p>
+                                <p><strong>✅ Use When:</strong> You need bounded values, no outliers</p>
+                                <p><strong>🎯 Best for:</strong> Neural Networks, image processing</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-shield-alt text-info"></i> Robust Scaler</h6>
+                                <p><strong>📐 Formula:</strong> (x - median) / IQR</p>
+                                <p><strong>📊 Result:</strong> Centered around median</p>
+                                <p><strong>✅ Use When:</strong> Data has many outliers</p>
+                                <p><strong>🎯 Best for:</strong> Datasets with extreme values that shouldn't be removed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-sort-numeric-up text-warning"></i> MaxAbs Scaler</h6>
+                                <p><strong>📐 Formula:</strong> x / max(|x|)</p>
+                                <p><strong>📊 Result:</strong> Range = [-1, 1], preserves sparsity</p>
+                                <p><strong>✅ Use When:</strong> Data is already centered around zero, sparse data</p>
+                                <p><strong>🎯 Best for:</strong> Sparse matrices, data that's already normalized</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Binning Comparison -->
+                <div class="comparison-section">
+                    <h5 style="color: var(--primary-color);">
+                        <i class="fas fa-th"></i> Binning Strategies
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-ruler text-primary"></i> Equal-Width</h6>
+                                <p><strong>⚙️ Method:</strong> Divides range into equal intervals</p>
+                                <p><strong>✅ Use When:</strong> Data is uniformly distributed</p>
+                                <p><strong>⚠️ Caution:</strong> May create empty bins or imbalanced counts</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-balance-scale text-success"></i> Equal-Frequency</h6>
+                                <p><strong>⚙️ Method:</strong> Each bin has same number of samples</p>
+                                <p><strong>✅ Use When:</strong> Data is skewed, need balanced bins</p>
+                                <p><strong>🎯 Benefit:</strong> Each bin has equal statistical power</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="technique-card" style="height: 100%;">
+                                <h6><i class="fas fa-chart-area text-info"></i> Quantile-Based</h6>
+                                <p><strong>⚙️ Method:</strong> Bins based on data distribution percentiles</p>
+                                <p><strong>✅ Use When:</strong> You want statistically meaningful groups</p>
+                                <p><strong>🎯 Benefit:</strong> Robust to outliers, preserves distribution</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Upload Section -->
+        <div class="section-card">
+            <h3>
+                <i class="fas fa-database"></i> Step 1: Load Your Dataset
+                <i class="fas fa-info-circle tooltip-icon" data-bs-toggle="tooltip" title="Upload a CSV or Excel file, or select from your existing datasets"></i>
+            </h3>
+
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h5>Upload New File</h5>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                        <h5>Drag & Drop or Click to Upload</h5>
+                        <p class="text-muted">Supported formats: CSV, Excel (.xlsx)</p>
+                        <input type="file" id="fileInput" accept=".csv,.xlsx" style="display: none;">
+                        <button type="button" class="btn btn-primary-gradient mt-3" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Or Select Existing Dataset</h5>
+                    <select class="form-select form-select-lg" id="datasetSelector">
+                        <option value="">-- Select a dataset --</option>
+                    </select>
+                    <button type="button" class="btn btn-primary-gradient mt-3 w-100" onclick="loadSelectedDataset()">
+                        <i class="fas fa-download"></i> Load Dataset
+                    </button>
+                </div>
+            </div>
+
+            <div id="datasetInfo" style="display: none;" class="mt-4">
+                <div class="success-box">
+                    <i class="fas fa-check-circle fa-2x float-start me-3"></i>
+                    <h5>Dataset Loaded Successfully!</h5>
+                    <div id="datasetInfoContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Automated Mode Content -->
+        <div id="automatedContent">
+            <div class="section-card">
+                <h3>
+                    <i class="fas fa-robot"></i> Step 2: Automated Feature Engineering
+                    <i class="fas fa-info-circle tooltip-icon" data-bs-toggle="tooltip" title="Our AI will analyze your data and automatically create optimal features"></i>
+                </h3>
+
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>How it works:</strong> The automated system will:
+                    <ul class="mb-0 mt-2">
+                        <li>Analyze feature importance using multiple methods (Random Forest, XGBoost, Correlation)</li>
+                        <li>Create intelligent features (polynomial, ratios, log transforms, statistical aggregations)</li>
+                        <li>Perform dimensionality reduction (PCA) when beneficial</li>
+                        <li>Compare different feature sets to find the best combination</li>
+                        <li>Provide AI-powered recommendations and insights</li>
+                    </ul>
+                </div>
+
+                <button type="button" class="btn btn-primary-gradient btn-lg w-100 mt-3" id="runAutomatedBtn" onclick="runAutomatedAnalysis()" disabled>
+                    <i class="fas fa-play-circle"></i> Run Automated Analysis
+                </button>
+            </div>
+
+            <!-- Automated Results will be displayed here -->
+            <div id="automatedResults"></div>
+        </div>
+
+        <!-- Manual Mode Content -->
+        <div id="manualContent" style="display: none;">
+            <div class="section-card">
+                <h3>
+                    <i class="fas fa-hand-sparkles"></i> Step 2: Manual Feature Engineering
+                    <i class="fas fa-info-circle tooltip-icon" data-bs-toggle="tooltip" title="Create and transform features with full control"></i>
+                </h3>
+
+                <!-- Manual Techniques Tabs -->
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('transformations')">
+                        <i class="fas fa-exchange-alt"></i> Transformations
+                    </button>
+                    <button class="tab" onclick="switchTab('combinations')">
+                        <i class="fas fa-plus-circle"></i> Combinations
+                    </button>
+                    <button class="tab" onclick="switchTab('binning')">
+                        <i class="fas fa-th"></i> Binning
+                    </button>
+                    <button class="tab" onclick="switchTab('scaling')">
+                        <i class="fas fa-balance-scale"></i> Scaling
+                    </button>
+                    <button class="tab" onclick="switchTab('selection')">
+                        <i class="fas fa-filter"></i> Selection
+                    </button>
+                </div>
+
+                <!-- Transformations Tab -->
+                <div id="transformations-content" class="tab-content active">
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-square-root-alt"></i>
+                                <h5>Logarithmic Transformation</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Use for right-skewed data to reduce the effect of outliers. Example: log(income), log(price)"></i>
+                        </div>
+                        <div class="info-box">
+                            <strong>When to use:</strong> Data with exponential growth patterns, right-skewed distributions, or wide range of values.
+                            <br><strong>Example:</strong> Income, population, prices
+                        </div>
+                        <div class="manual-controls">
+                            <div class="form-group">
+                                <label>Select Column</label>
+                                <select class="form-select" id="logColumn">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Base</label>
+                                <select class="form-select" id="logBase">
+                                    <option value="e">Natural Log (ln)</option>
+                                    <option value="10">Log Base 10</option>
+                                    <option value="2">Log Base 2</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyLogTransform()">
+                            <i class="fas fa-play"></i> Apply Log Transform
+                        </button>
+                    </div>
+
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-superscript"></i>
+                                <h5>Power Transformation</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Square, cube, or custom power transformations. Useful for capturing non-linear relationships."></i>
+                        </div>
+                        <div class="warning-box">
+                            <strong>Note:</strong> Square root is useful for moderately skewed data, while higher powers can amplify differences.
+                        </div>
+                        <div class="manual-controls">
+                            <div class="form-group">
+                                <label>Select Column</label>
+                                <select class="form-select" id="powerColumn">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Power</label>
+                                <select class="form-select" id="powerValue">
+                                    <option value="0.5">Square Root (^0.5)</option>
+                                    <option value="2">Square (^2)</option>
+                                    <option value="3">Cube (^3)</option>
+                                    <option value="custom">Custom...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="customPowerInput" style="display: none;">
+                                <label>Custom Power Value</label>
+                                <input type="number" class="form-control" id="customPower" step="0.1" value="1.5">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyPowerTransform()">
+                            <i class="fas fa-play"></i> Apply Power Transform
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Combinations Tab -->
+                <div id="combinations-content" class="tab-content">
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-divide"></i>
+                                <h5>Ratio Features</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Create ratios between features. Example: Price per square foot = Price / Area"></i>
+                        </div>
+                        <div class="info-box">
+                            <strong>Common Ratios:</strong> profit_margin = profit / revenue, efficiency = output / input, density = mass / volume
+                        </div>
+                        <div class="manual-controls">
+                            <div class="form-group">
+                                <label>Numerator</label>
+                                <select class="form-select" id="ratioNumerator">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Denominator</label>
+                                <select class="form-select" id="ratioDenominator">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>New Feature Name</label>
+                                <input type="text" class="form-control" id="ratioName" placeholder="e.g., price_per_sqft">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyRatioFeature()">
+                            <i class="fas fa-play"></i> Create Ratio Feature
+                        </button>
+                    </div>
+
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-times"></i>
+                                <h5>Interaction Features</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Multiply features to capture their combined effect. Example: area * quality_score"></i>
+                        </div>
+                        <div class="info-box">
+                            <strong>When to use:</strong> When two features might have a combined effect. Example: house area × location score
+                        </div>
+                        <div class="manual-controls">
+                            <div class="form-group">
+                                <label>First Feature</label>
+                                <select class="form-select" id="interactionFeature1">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Second Feature</label>
+                                <select class="form-select" id="interactionFeature2">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>New Feature Name</label>
+                                <input type="text" class="form-control" id="interactionName" placeholder="e.g., area_quality">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyInteractionFeature()">
+                            <i class="fas fa-play"></i> Create Interaction Feature
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Binning Tab -->
+                <div id="binning-content" class="tab-content">
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-th"></i>
+                                <h5>Equal-Width Binning</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Divide continuous features into bins of equal width. Example: Age groups (0-20, 20-40, 40-60, 60+)"></i>
+                        </div>
+                        <div class="info-box">
+                            <strong>Use case:</strong> Convert continuous variables to categorical bins. Example: Age → Age_group, Income → Income_bracket
+                        </div>
+                        <div class="manual-controls">
+                            <div class="form-group">
+                                <label>Select Column</label>
+                                <select class="form-select" id="binColumn">
+                                    <option value="">-- Select column --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Number of Bins</label>
+                                <input type="number" class="form-control" id="numBins" min="2" max="20" value="5">
+                            </div>
+                            <div class="form-group">
+                                <label>Strategy</label>
+                                <select class="form-select" id="binStrategy">
+                                    <option value="equal_width">Equal Width</option>
+                                    <option value="equal_freq">Equal Frequency</option>
+                                    <option value="quantile">Quantile-based</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyBinning()">
+                            <i class="fas fa-play"></i> Apply Binning
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scaling Tab -->
+                <div id="scaling-content" class="tab-content">
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-balance-scale"></i>
+                                <h5>Feature Scaling</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Scale features to a common range to prevent features with larger values from dominating"></i>
+                        </div>
+                        <div class="info-box">
+                            <strong>Standardization:</strong> Centers data around mean=0, std=1. Good for normally distributed data.
+                            <br><strong>Normalization:</strong> Scales data to [0, 1] range. Good for bounded data.
+                            <br><strong>Robust Scaling:</strong> Uses median and IQR. Good for data with outliers.
+                        </div>
+                        <div class="manual-controls">
+                            <div class="form-group">
+                                <label>Select Columns</label>
+                                <select class="form-select" id="scaleColumns" multiple size="5">
+                                    <option value="">-- Select columns --</option>
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Scaling Method</label>
+                                <select class="form-select" id="scalingMethod">
+                                    <option value="standard">Standardization (Z-score)</option>
+                                    <option value="minmax">Min-Max Normalization</option>
+                                    <option value="robust">Robust Scaling</option>
+                                    <option value="maxabs">Max Absolute Scaling</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyScaling()">
+                            <i class="fas fa-play"></i> Apply Scaling
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selection Tab -->
+                <div id="selection-content" class="tab-content">
+                    <div class="technique-card">
+                        <div class="technique-header">
+                            <div class="technique-title">
+                                <i class="fas fa-filter"></i>
+                                <h5>Manual Feature Selection</h5>
+                            </div>
+                            <i class="fas fa-question-circle help-icon" data-bs-toggle="tooltip"
+                               title="Select specific features to keep or remove based on your domain knowledge"></i>
+                        </div>
+                        <div class="info-box">
+                            <strong>Tip:</strong> Remove redundant, irrelevant, or highly correlated features to improve model performance and interpretability.
+                        </div>
+                        <div id="featureSelectionList" class="mt-3">
+                            <!-- Will be populated with checkboxes for each feature -->
+                        </div>
+                        <button class="btn btn-primary-gradient mt-3" onclick="applyFeatureSelection()">
+                            <i class="fas fa-check"></i> Apply Selection
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Results Preview -->
+            <div class="section-card" id="manualResults" style="display: none;">
+                <h3><i class="fas fa-chart-line"></i> Engineered Features Preview</h3>
+                <div id="manualResultsContent"></div>
+                <button class="btn btn-success btn-lg mt-3" onclick="downloadManualDataset()">
+                    <i class="fas fa-download"></i> Download Enhanced Dataset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h4>Processing Your Data</h4>
+            <p id="loadingMessage">Analyzing features and patterns...</p>
+        </div>
+    </div>
+
+    <!-- AI Assistant Bot -->
+    <div id="aiAssistantButton" class="ai-assistant-button">
+        <i class="fas fa-robot"></i>
+    </div>
+
+    <div id="aiAssistantPanel" class="ai-assistant-panel">
+        <div class="assistant-header">
+            <h3><i class="fas fa-robot"></i> Feature Engineering Assistant</h3>
+            <button id="closeAssistant" class="close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="assistantChatHistory" class="assistant-chat-history">
+            <div class="assistant-welcome">
+                <p><strong>👋 Hi! I'm your Feature Engineering Assistant!</strong></p>
+                <p>I can help you with:</p>
+                <ul>
+                    <li>Choosing the right transformation technique</li>
+                    <li>Understanding PCA vs LDA vs t-SNE</li>
+                    <li>Explaining scaling methods</li>
+                    <li>Interpreting feature importance</li>
+                    <li>Troubleshooting errors</li>
+                </ul>
+                <p><em>Ask me anything about feature engineering!</em></p>
+            </div>
+            <!-- Chat messages will be added here by JavaScript -->
+        </div>
+        <div id="assistantLoading" class="assistant-loading d-none">
+            <div class="spinner"></div>
+        </div>
+        <div class="assistant-input">
+            <textarea id="assistantMessage" placeholder="Ask about feature engineering techniques, comparisons, or get help..."></textarea>
+            <button id="sendAssistantMessage">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        let currentMode = 'automated';
+        let currentDataset = null;
+        let engineeredFeatures = [];
+
+        // Mode Switching
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('automatedModeBtn').classList.toggle('active', mode === 'automated');
+            document.getElementById('manualModeBtn').classList.toggle('active', mode === 'manual');
+            document.getElementById('automatedContent').style.display = mode === 'automated' ? 'block' : 'none';
+            document.getElementById('manualContent').style.display = mode === 'manual' ? 'block' : 'none';
+        }
+
+        // Toggle Learning Center
+        function toggleLearningCenter() {
+            const content = document.getElementById('learningCenterContent');
+            const chevron = document.getElementById('learningChevron');
+            if (content.style.display === 'none' || content.style.display === '') {
+                content.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Show selected tab content
+            document.getElementById(tabName + '-content').classList.add('active');
+            // Add active class to clicked tab
+            event.target.closest('.tab').classList.add('active');
+        }
+
+        // Load available datasets on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadAvailableDatasets();
+        });
+
+        function loadAvailableDatasets() {
+            fetch('/module6/available_datasets')
+                .then(response => response.json())
+                .then(data => {
+                    const selector = document.getElementById('datasetSelector');
+                    selector.innerHTML = '<option value="">-- Select a dataset --</option>';
+
+                    if (data.datasets && data.datasets.length > 0) {
+                        data.datasets.forEach(ds => {
+                            const option = document.createElement('option');
+                            option.value = ds.id;
+                            option.textContent = `${ds.name} (${ds.rows} rows × ${ds.columns} cols)`;
+                            selector.appendChild(option);
+                        });
+                    } else {
+                        selector.innerHTML += '<option value="" disabled>No datasets available</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading datasets:', error);
+                    alert('Error loading datasets: ' + error.message);
+                });
+        }
+
+        // File Upload Handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+
+        // Drag and Drop
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#dee2e6';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#dee2e6';
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+        uploadArea.addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showLoading('Uploading file...');
+
+            fetch('/module6/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    currentDataset = data;
+                    displayDatasetInfo(data);
+                    populateColumnSelectors(data.columns);
+                    document.getElementById('runAutomatedBtn').disabled = false;
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Upload failed: ' + error.message);
+            });
+        }
+
+        function loadSelectedDataset() {
+            const datasetId = document.getElementById('datasetSelector').value;
+            if (!datasetId) {
+                alert('Please select a dataset');
+                return;
+            }
+
+            showLoading('Loading dataset...');
+
+            fetch(`/module6/load_dataset/${datasetId}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    currentDataset = data;
+                    displayDatasetInfo(data);
+                    populateColumnSelectors(data.columns);
+                    document.getElementById('runAutomatedBtn').disabled = false;
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Load failed: ' + error.message);
+            });
+        }
+
+        function displayDatasetInfo(data) {
+            const infoDiv = document.getElementById('datasetInfo');
+            const contentDiv = document.getElementById('datasetInfoContent');
+
+            contentDiv.innerHTML = `
+                <p><strong>Shape:</strong> ${data.shape[0]} rows × ${data.shape[1]} columns</p>
+                <p><strong>Detected Target:</strong> ${data.detected_target}</p>
+                <p><strong>Columns:</strong> ${data.columns.join(', ')}</p>
+            `;
+
+            infoDiv.style.display = 'block';
+        }
+
+        function populateColumnSelectors(columns) {
+            const selectors = [
+                'logColumn', 'powerColumn', 'ratioNumerator', 'ratioDenominator',
+                'interactionFeature1', 'interactionFeature2', 'binColumn', 'scaleColumns'
+            ];
+
+            selectors.forEach(selectorId => {
+                const selector = document.getElementById(selectorId);
+                if (selector) {
+                    const currentValue = selector.value;
+                    selector.innerHTML = '<option value="">-- Select column --</option>';
+                    columns.forEach(col => {
+                        const option = document.createElement('option');
+                        option.value = col;
+                        option.textContent = col;
+                        selector.appendChild(option);
+                    });
+                    if (currentValue) selector.value = currentValue;
+                }
+            });
+
+            // Populate feature selection list
+            const featureList = document.getElementById('featureSelectionList');
+            if (featureList) {
+                featureList.innerHTML = '<h5>Select features to keep:</h5>';
+                columns.forEach(col => {
+                    featureList.innerHTML += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${col}" id="feature_${col}" checked>
+                            <label class="form-check-label" for="feature_${col}">${col}</label>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        // Automated Analysis
+        function runAutomatedAnalysis() {
+            if (!currentDataset) {
+                alert('Please upload or select a dataset first');
+                return;
+            }
+
+            showLoading('Running automated analysis. This may take a minute...');
+
+            fetch('/module6/analyze', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Analysis Error: ' + data.error);
+                } else {
+                    displayAutomatedResults(data.results);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Analysis failed: ' + error.message);
+            });
+        }
+
+        function displayAutomatedResults(results) {
+            const resultsDiv = document.getElementById('automatedResults');
+            let html = '';
+
+            // Display results sections with explanations
+            if (results.feature_importance) {
+                html += `
+                    <div class="section-card">
+                        <h3><i class="fas fa-star"></i> Feature Importance Analysis</h3>
+                        <div class="info-box">
+                            <strong>What this means:</strong> Features are ranked by their predictive power. Higher importance = more useful for predictions.
+                        </div>
+                        <div class="accordion" id="importanceAccordion">
+                `;
+
+                Object.keys(results.feature_importance).forEach((method, index) => {
+                    const scores = results.feature_importance[method];
+                    if (Array.isArray(scores)) {
+                        html += `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                                        ${method.replace(/_/g, ' ').toUpperCase()} Method
+                                    </button>
+                                </h2>
+                                <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}"
+                                     data-bs-parent="#importanceAccordion">
+                                    <div class="accordion-body">
+                                        <table class="table table-striped">
+                                            <thead><tr><th>Feature</th><th>Importance Score</th></tr></thead>
+                                            <tbody>
+                                        `;
+                        scores.slice(0, 10).forEach(([feature, score]) => {
+                            html += `<tr><td>${feature}</td><td>${score.toFixed(4)}</td></tr>`;
+                        });
+                        html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                html += `</div></div>`;
+            }
+
+            // Add download buttons at the end
+            html += `
+                <div class="section-card" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                    <h3><i class="fas fa-download"></i> Download Results</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <button class="btn btn-success btn-lg w-100" onclick="downloadOptimizedDataset()">
+                                <i class="fas fa-file-csv"></i> Download Optimized Dataset
+                            </button>
+                            <small class="text-muted">Get the dataset with all automated feature engineering applied</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button class="btn btn-info btn-lg w-100" onclick="downloadFeatureImportance()">
+                                <i class="fas fa-chart-bar"></i> Download Feature Importance
+                            </button>
+                            <small class="text-muted">Get detailed feature importance rankings as CSV</small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <button class="btn btn-primary btn-lg w-100" onclick="downloadAnalysisReport()">
+                                <i class="fas fa-file-alt"></i> Download Full Analysis Report
+                            </button>
+                            <small class="text-muted">Complete JSON report of all analysis results</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button class="btn btn-warning btn-lg w-100" onclick="downloadCreatedFeatures()">
+                                <i class="fas fa-list"></i> Download Created Features List
+                            </button>
+                            <small class="text-muted">List of all newly engineered features</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Manual Feature Engineering Functions
+        function applyLogTransform() {
+            const column = document.getElementById('logColumn').value;
+            const base = document.getElementById('logBase').value;
+
+            if (!column) {
+                alert('Please select a column');
+                return;
+            }
+
+            showLoading('Applying log transformation...');
+
+            fetch('/module6/manual/log_transform', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({column, base})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Created feature: ${data.new_feature_name}`);
+                    engineeredFeatures.push(data.new_feature_name);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Transform failed: ' + error.message);
+            });
+        }
+
+        function applyPowerTransform() {
+            const column = document.getElementById('powerColumn').value;
+            let power = document.getElementById('powerValue').value;
+
+            if (power === 'custom') {
+                power = document.getElementById('customPower').value;
+            }
+
+            if (!column) {
+                alert('Please select a column');
+                return;
+            }
+
+            showLoading('Applying power transformation...');
+
+            fetch('/module6/manual/power_transform', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({column, power: parseFloat(power)})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Created feature: ${data.new_feature_name}`);
+                    engineeredFeatures.push(data.new_feature_name);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Transform failed: ' + error.message);
+            });
+        }
+
+        function applyRatioFeature() {
+            const numerator = document.getElementById('ratioNumerator').value;
+            const denominator = document.getElementById('ratioDenominator').value;
+            const name = document.getElementById('ratioName').value;
+
+            if (!numerator || !denominator) {
+                alert('Please select both columns');
+                return;
+            }
+
+            if (!name) {
+                alert('Please provide a name for the new feature');
+                return;
+            }
+
+            showLoading('Creating ratio feature...');
+
+            fetch('/module6/manual/ratio_feature', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({numerator, denominator, name})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Created feature: ${name}`);
+                    engineeredFeatures.push(name);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Creation failed: ' + error.message);
+            });
+        }
+
+        function applyInteractionFeature() {
+            const feature1 = document.getElementById('interactionFeature1').value;
+            const feature2 = document.getElementById('interactionFeature2').value;
+            const name = document.getElementById('interactionName').value;
+
+            if (!feature1 || !feature2) {
+                alert('Please select both features');
+                return;
+            }
+
+            if (!name) {
+                alert('Please provide a name for the new feature');
+                return;
+            }
+
+            showLoading('Creating interaction feature...');
+
+            fetch('/module6/manual/interaction_feature', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({feature1, feature2, name})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Created feature: ${name}`);
+                    engineeredFeatures.push(name);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Creation failed: ' + error.message);
+            });
+        }
+
+        function applyBinning() {
+            const column = document.getElementById('binColumn').value;
+            const numBins = parseInt(document.getElementById('numBins').value);
+            const strategy = document.getElementById('binStrategy').value;
+
+            if (!column) {
+                alert('Please select a column');
+                return;
+            }
+
+            showLoading('Applying binning...');
+
+            fetch('/module6/manual/binning', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({column, num_bins: numBins, strategy})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Created feature: ${data.new_feature_name}`);
+                    engineeredFeatures.push(data.new_feature_name);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Binning failed: ' + error.message);
+            });
+        }
+
+        function applyScaling() {
+            const columns = Array.from(document.getElementById('scaleColumns').selectedOptions).map(opt => opt.value);
+            const method = document.getElementById('scalingMethod').value;
+
+            if (columns.length === 0) {
+                alert('Please select at least one column');
+                return;
+            }
+
+            showLoading('Applying scaling...');
+
+            fetch('/module6/manual/scaling', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({columns, method})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Scaled ${columns.length} features using ${method}`);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Scaling failed: ' + error.message);
+            });
+        }
+
+        function applyFeatureSelection() {
+            const checkboxes = document.querySelectorAll('#featureSelectionList input[type="checkbox"]');
+            const selectedFeatures = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            if (selectedFeatures.length === 0) {
+                alert('Please select at least one feature');
+                return;
+            }
+
+            showLoading('Applying feature selection...');
+
+            fetch('/module6/manual/feature_selection', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({selected_features: selectedFeatures})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    showSuccess(`Selected ${selectedFeatures.length} features`);
+                    updateManualResults();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Selection failed: ' + error.message);
+            });
+        }
+
+        function updateManualResults() {
+            const resultsDiv = document.getElementById('manualResults');
+            const contentDiv = document.getElementById('manualResultsContent');
+
+            if (engineeredFeatures.length > 0) {
+                contentDiv.innerHTML = `
+                    <h5>Created Features (${engineeredFeatures.length}):</h5>
+                    <div>
+                        ${engineeredFeatures.map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                    </div>
+                `;
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        function downloadManualDataset() {
+            window.location.href = '/module6/download/manual_dataset';
+        }
+
+        // Automated Download Functions
+        function downloadOptimizedDataset() {
+            window.location.href = '/module6/download/optimized_dataset';
+        }
+
+        function downloadFeatureImportance() {
+            window.location.href = '/module6/download/feature_importance';
+        }
+
+        function downloadAnalysisReport() {
+            window.location.href = '/module6/download/analysis_results';
+        }
+
+        function downloadCreatedFeatures() {
+            window.location.href = '/module6/download/feature_list';
+        }
+
+        // Utility Functions
+        function showLoading(message = 'Processing...') {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            // Create a temporary success toast
+            const toast = document.createElement('div');
+            toast.className = 'success-box';
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '10000';
+            toast.style.minWidth = '300px';
+            toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Power value selector
+        document.getElementById('powerValue').addEventListener('change', function() {
+            document.getElementById('customPowerInput').style.display =
+                this.value === 'custom' ? 'block' : 'none';
+        });
+
+        // Initialize AI Assistant with Feature Engineering context
+        window.addEventListener('DOMContentLoaded', function() {
+            // Set context for AI assistant if the function exists
+            if (typeof window.setAIContext === 'function') {
+                window.setAIContext('feature_engineering', {
+                    page: 'Feature Engineering',
+                    capabilities: [
+                        'Explain feature engineering techniques',
+                        'Compare PCA, LDA, and t-SNE',
+                        'Recommend scaling methods',
+                        'Help choose transformations',
+                        'Interpret feature importance',
+                        'Troubleshoot errors'
+                    ],
+                    examples: [
+                        'What is the difference between PCA and LDA?',
+                        'When should I use log transformation?',
+                        'How do I choose between standardization and min-max scaling?',
+                        'What does feature importance tell me?',
+                        'Why is my binning operation failing?',
+                        'Explain ratio features vs interaction features'
+                    ]
+                });
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/ai_assistant.js') }}"></script>
+</body>
+</html>

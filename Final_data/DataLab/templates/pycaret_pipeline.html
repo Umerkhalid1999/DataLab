@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyCaret End-to-End Pipeline</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .pipeline-container { background: white; border-radius: 15px; padding: 30px; max-width: 1600px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .pipeline-header { text-align: center; margin-bottom: 30px; }
+        .pipeline-header h1 { color: #667eea; font-weight: bold; }
+        
+        /* Node Visualization */
+        .nodes-container { display: flex; justify-content: space-around; align-items: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; flex-wrap: wrap; }
+        .pipeline-node { background: white; border: 3px solid #dee2e6; border-radius: 15px; padding: 20px; width: 150px; text-align: center; transition: all 0.3s; margin: 10px; position: relative; }
+        .pipeline-node.pending { border-color: #6c757d; background: #f8f9fa; }
+        .pipeline-node.running { border-color: #ffc107; background: #fff3cd; animation: pulse 1.5s infinite; }
+        .pipeline-node.completed { border-color: #28a745; background: #d4edda; }
+        .pipeline-node.failed { border-color: #dc3545; background: #f8d7da; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        .node-icon { font-size: 40px; margin-bottom: 10px; }
+        .pipeline-node.pending .node-icon { color: #6c757d; }
+        .pipeline-node.running .node-icon { color: #ffc107; }
+        .pipeline-node.completed .node-icon { color: #28a745; }
+        .pipeline-node.failed .node-icon { color: #dc3545; }
+        
+        .node-name { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .node-status { font-size: 12px; margin-top: 10px; }
+        
+        .arrow { font-size: 30px; color: #dee2e6; margin: 0 10px; }
+        .arrow.active { color: #28a745; }
+        
+        /* Config Panel */
+        .config-panel { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        
+        /* Results Panel */
+        .results-panel { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-top: 20px; max-height: 400px; overflow-y: auto; }
+        .result-item { background: white; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; }
+        
+        /* Logs */
+        .logs-container { background: #212529; color: #00ff00; border-radius: 10px; padding: 15px; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; margin-top: 20px; }
+        .log-entry { margin-bottom: 5px; }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+        
+        .btn-start { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 40px; font-size: 16px; font-weight: bold; border-radius: 25px; }
+        .btn-start:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <div class="pipeline-container">
+        <div class="pipeline-header">
+            <h1><i class="fas fa-robot"></i> PyCaret End-to-End ML Pipeline</h1>
+            <p class="text-muted">Automated Machine Learning from Data to Deployment</p>
+        </div>
+        
+        <!-- Configuration Panel -->
+        <div class="config-panel">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Dataset:</strong></label>
+                    <select id="datasetSelect" class="form-select">
+                        <option value="">-- Choose dataset --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Target Column:</strong></label>
+                    <select id="targetSelect" class="form-select">
+                        <option value="">-- Select target --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Problem Type:</strong></label>
+                    <select id="problemType" class="form-select">
+                        <option value="classification">Classification</option>
+                        <option value="regression">Regression</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-start" onclick="startPipeline()">
+                    <i class="fas fa-play"></i> Start End-to-End Pipeline
+                </button>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="progress mb-3" style="height: 30px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+        </div>
+        
+        <!-- Pipeline Nodes -->
+        <div class="nodes-container">
+            <div class="pipeline-node pending" id="node1">
+                <div class="node-icon"><i class="fas fa-database"></i></div>
+                <div class="node-name">Data Loading</div>
+                <div class="node-status">Pending</div>
+            </div>
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="pipeline-node pending" id="node2">
+                <div class="node-icon"><i class="fas fa-cog"></i></div>
+                <div class="node-name">PyCaret Setup</div>
+                <div class="node-status">Pending</div>
+            </div>
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="pipeline-node pending" id="node3">
+                <div class="node-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="node-name">Model Comparison</div>
+                <div class="node-status">Pending</div>
+            </div>
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="pipeline-node pending" id="node4">
+                <div class="node-icon"><i class="fas fa-sliders-h"></i></div>
+                <div class="node-name">Model Tuning</div>
+                <div class="node-status">Pending</div>
+            </div>
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="pipeline-node pending" id="node5">
+                <div class="node-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="node-name">Evaluation</div>
+                <div class="node-status">Pending</div>
+            </div>
+            <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+            
+            <div class="pipeline-node pending" id="node6">
+                <div class="node-icon"><i class="fas fa-save"></i></div>
+                <div class="node-name">Finalization</div>
+                <div class="node-status">Pending</div>
+            </div>
+        </div>
+        
+        <!-- Results Panel -->
+        <div class="results-panel" id="resultsPanel" style="display:none;">
+            <h5><i class="fas fa-chart-bar"></i> Pipeline Results</h5>
+            <div id="resultsContent"></div>
+        </div>
+        
+        <!-- Logs -->
+        <div class="logs-container" id="logsContainer">
+            <div class="log-entry log-info">[SYSTEM] PyCaret Pipeline Ready</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentExecution = null;
+        const nodes = ['node1', 'node2', 'node3', 'node4', 'node5', 'node6'];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDatasets();
+        });
+        
+        async function loadDatasets() {
+            try {
+                const response = await fetch('/api/datasets');
+                const data = await response.json();
+                const select = document.getElementById('datasetSelect');
+                select.innerHTML = '<option value="">-- Choose dataset --</option>';
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(ds => {
+                        const option = document.createElement('option');
+                        option.value = ds.id;
+                        option.textContent = `${ds.name}`;
+                        option.dataset.filepath = ds.file_path;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                addLog('Error loading datasets: ' + error.message, 'error');
+            }
+        }
+        
+        document.getElementById('datasetSelect').addEventListener('change', async function() {
+            const datasetId = this.value;
+            if (!datasetId) return;
+            
+            try {
+                const response = await fetch(`/api/dataset/${datasetId}/info`);
+                const data = await response.json();
+                
+                const targetSelect = document.getElementById('targetSelect');
+                targetSelect.innerHTML = '<option value="">-- Select target --</option>';
+                
+                if (data.success && data.columns) {
+                    data.columns.forEach(col => {
+                        const option = document.createElement('option');
+                        option.value = col.name;
+                        option.textContent = `${col.name} (${col.type})`;
+                        targetSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                addLog('Error loading columns: ' + error.message, 'error');
+            }
+        });
+        
+        async function startPipeline() {
+            const datasetId = document.getElementById('datasetSelect').value;
+            const targetColumn = document.getElementById('targetSelect').value;
+            const problemType = document.getElementById('problemType').value;
+            
+            if (!datasetId || !targetColumn) {
+                alert('Please select dataset and target column!');
+                return;
+            }
+            
+            addLog('[PIPELINE] Starting end-to-end pipeline...', 'info');
+            
+            try {
+                const response = await fetch('/pycaret-pipeline/api/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dataset_id: datasetId, target_column: targetColumn, problem_type: problemType})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    currentExecution = data.execution_id;
+                    addLog(`[PIPELINE] Execution started: ${currentExecution}`, 'success');
+                    await executeAllNodes();
+                } else {
+                    addLog('[ERROR] ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('[ERROR] ' + error.message, 'error');
+            }
+        }
+        
+        async function executeAllNodes() {
+            for (let i = 0; i < nodes.length; i++) {
+                const nodeId = nodes[i];
+                const nodeElement = document.getElementById(nodeId);
+                
+                nodeElement.className = 'pipeline-node running';
+                nodeElement.querySelector('.node-status').textContent = 'Running...';
+                addLog(`[${nodeId.toUpperCase()}] Executing...`, 'info');
+                
+                updateProgress(Math.round(((i + 0.5) / nodes.length) * 100));
+                
+                try {
+                    const response = await fetch(`/pycaret-pipeline/api/execute/${currentExecution}/${nodeId}`, {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        nodeElement.className = 'pipeline-node completed';
+                        nodeElement.querySelector('.node-status').textContent = 'Completed';
+                        addLog(`[${nodeId.toUpperCase()}] ${data.node} completed`, 'success');
+                        updateProgress(Math.round(((i + 1) / nodes.length) * 100));
+                    } else {
+                        nodeElement.className = 'pipeline-node failed';
+                        nodeElement.querySelector('.node-status').textContent = 'Failed';
+                        addLog(`[${nodeId.toUpperCase()}] ERROR: ${data.error}`, 'error');
+                        return;
+                    }
+                } catch (error) {
+                    nodeElement.className = 'pipeline-node failed';
+                    nodeElement.querySelector('.node-status').textContent = 'Failed';
+                    addLog(`[${nodeId.toUpperCase()}] ERROR: ${error.message}`, 'error');
+                    return;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            addLog('[PIPELINE] All nodes completed successfully!', 'success');
+            showResults();
+        }
+        
+        function updateProgress(percent) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+        }
+        
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logsContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        async function showResults() {
+            try {
+                const response = await fetch(`/pycaret-pipeline/api/status/${currentExecution}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const resultsPanel = document.getElementById('resultsPanel');
+                    const resultsContent = document.getElementById('resultsContent');
+                    
+                    let html = '';
+                    const execution = data.execution;
+                    
+                    Object.keys(execution.nodes).forEach(nodeId => {
+                        const nodeData = execution.nodes[nodeId];
+                        html += `
+                            <div class="result-item">
+                                <h6>${nodeData.node}</h6>
+                                <pre>${JSON.stringify(nodeData.data, null, 2)}</pre>
+                            </div>
+                        `;
+                    });
+                    
+                    resultsContent.innerHTML = html;
+                    resultsPanel.style.display = 'block';
+                }
+            } catch (error) {
+                addLog('[ERROR] Failed to load results: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

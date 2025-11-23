@@ -11,11 +11,21 @@
     <!-- Header Section -->
     <div class="header-section">
         <div class="header-content">
-            <h1><i class="fas fa-project-diagram"></i> Workflow Management</h1>
-            <p class="subtitle">Create, execute, and share comprehensive data preprocessing pipelines</p>
-            <div class="dataset-info">
-                <span class="dataset-name">{{ dataset.name }}</span>
-                <span class="dataset-meta">{{ dataset.rows }} rows × {{ dataset.columns }} columns</span>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-project-diagram"></i> Workflow Management</h1>
+                    <p class="subtitle">Create, execute, and share comprehensive data preprocessing pipelines</p>
+                    <div class="dataset-info">
+                        <span class="dataset-name"><i class="fas fa-database"></i> {{ dataset.name }}</span>
+                        <span class="dataset-meta"><i class="fas fa-table"></i> {{ dataset.rows }} rows × {{ dataset.columns }} columns</span>
+                        <span class="dataset-meta"><i class="fas fa-star"></i> Quality: {{ dataset.quality_score }}%</span>
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
             </div>
         </div>
     </div>

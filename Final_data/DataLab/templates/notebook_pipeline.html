@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive ML Notebook - DataLab</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { color: #333; margin-bottom: 10px; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .controls select, .controls input, .controls button { padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .controls button { background: #007bff; color: white; cursor: pointer; border: none; }
+        .controls button:hover { background: #0056b3; }
+        .controls button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .notebook { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .cell { border-bottom: 1px solid #e0e0e0; }
+        .cell:last-child { border-bottom: none; }
+        .cell-header { background: #f8f9fa; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #007bff; }
+        .cell-title { font-weight: 600; color: #333; }
+        .cell-status { font-size: 12px; padding: 4px 8px; border-radius: 12px; }
+        .status-pending { background: #e0e0e0; color: #666; }
+        .status-running { background: #fff3cd; color: #856404; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        
+        .cell-code { background: #f8f9fa; padding: 15px; font-family: 'Courier New', monospace; font-size: 13px; color: #333; border-left: 4px solid #28a745; margin: 10px 15px; border-radius: 4px; }
+        .cell-output { padding: 15px; font-family: 'Courier New', monospace; font-size: 13px; background: #fff; white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow-y: auto; }
+        .cell-output.error { color: #d32f2f; background: #ffebee; }
+        
+        .cell-actions { display: flex; gap: 10px; padding: 10px 15px; background: #f8f9fa; }
+        .cell-actions button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .run-btn { background: #28a745; color: white; }
+        .run-btn:hover { background: #218838; }
+        .run-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .download-section { margin-top: 20px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .download-section h3 { margin-bottom: 15px; color: #333; }
+        .download-btns { display: flex; gap: 10px; }
+        .download-btns button { padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .download-model { background: #17a2b8; color: white; }
+        .download-notebook { background: #6c757d; color: white; }
+        .download-model:hover { background: #138496; }
+        .download-notebook:hover { background: #5a6268; }
+        
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #f3f3f3; border-top: 2px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Interactive ML Notebook Pipeline</h1>
+            <p>Execute PyCaret cells step-by-step like Jupyter Notebook</p>
+            
+            <div class="controls">
+                <select id="datasetSelect">
+                    <option value="">Select Dataset</option>
+                </select>
+                <select id="targetSelect">
+                    <option value="">Select Target Column</option>
+                </select>
+                <select id="problemType">
+                    <option value="classification">Classification</option>
+                    <option value="regression">Regression</option>
+                </select>
+                <button id="initBtn">Initialize Notebook</button>
+                <button id="runAllBtn" disabled>▶ Run All Cells</button>
+            </div>
+        </div>
+        
+        <div class="notebook" id="notebook">
+            <!-- Cell 1: Data Loading -->
+            <div class="cell" data-cell="cell1">
+                <div class="cell-header">
+                    <span class="cell-title">📊 Cell 1: Data Loading & Exploration</span>
+                    <span class="cell-status status-pending">Pending</span>
+                </div>
+                <div class="cell-code"># Load and explore dataset
+data = pd.read_csv('dataset.csv')
+print(f"Dataset shape: {data.shape}")
+data.info()
+data.describe()</div>
+                <div class="cell-output" style="display:none;"></div>
+                <div class="cell-actions">
+                    <button class="run-btn" disabled>▶ Run Cell</button>
+                </div>
+            </div>
+            
+            <!-- Cell 2: PyCaret Setup -->
+            <div class="cell" data-cell="cell2">
+                <div class="cell-header">
+                    <span class="cell-title">⚙️ Cell 2: PyCaret Setup & Preprocessing</span>
+                    <span class="cell-status status-pending">Pending</span>
+                </div>
+                <div class="cell-code"># Initialize PyCaret environment
+from pycaret.classification import *
+clf = setup(data=data, target='target', session_id=123)</div>
+                <div class="cell-output" style="display:none;"></div>
+                <div class="cell-actions">
+                    <button class="run-btn" disabled>▶ Run Cell</button>
+                </div>
+            </div>
+            
+            <!-- Cell 3: Model Comparison -->
+            <div class="cell" data-cell="cell3">
+                <div class="cell-header">
+                    <span class="cell-title">🔍 Cell 3: Compare Models</span>
+                    <span class="cell-status status-pending">Pending</span>
+                </div>
+                <div class="cell-code"># Compare all available models
+best_model = compare_models(n_select=1, fold=3)
+print(f"Best Model: {best_model}")</div>
+                <div class="cell-output" style="display:none;"></div>
+                <div class="cell-actions">
+                    <button class="run-btn" disabled>▶ Run Cell</button>
+                </div>
+            </div>
+            
+            <!-- Cell 4: Model Tuning -->
+            <div class="cell" data-cell="cell4">
+                <div class="cell-header">
+                    <span class="cell-title">🎯 Cell 4: Hyperparameter Tuning</span>
+                    <span class="cell-status status-pending">Pending</span>
+                </div>
+                <div class="cell-code"># Tune the best model
+tuned_model = tune_model(best_model, n_iter=5)
+print("Model tuning complete!")</div>
+                <div class="cell-output" style="display:none;"></div>
+                <div class="cell-actions">
+                    <button class="run-btn" disabled>▶ Run Cell</button>
+                </div>
+            </div>
+            
+            <!-- Cell 5: Model Evaluation -->
+            <div class="cell" data-cell="cell5">
+                <div class="cell-header">
+                    <span class="cell-title">📈 Cell 5: Model Evaluation</span>
+                    <span class="cell-status status-pending">Pending</span>
+                </div>
+                <div class="cell-code"># Evaluate model performance
+predictions = predict_model(tuned_model)
+print("Model evaluation complete!")</div>
+                <div class="cell-output" style="display:none;"></div>
+                <div class="cell-actions">
+                    <button class="run-btn" disabled>▶ Run Cell</button>
+                </div>
+            </div>
+            
+            <!-- Cell 6: Finalize & Save -->
+            <div class="cell" data-cell="cell6">
+                <div class="cell-header">
+                    <span class="cell-title">💾 Cell 6: Finalize & Save Model</span>
+                    <span class="cell-status status-pending">Pending</span>
+                </div>
+                <div class="cell-code"># Finalize and save model
+final_model = finalize_model(tuned_model)
+save_model(final_model, 'final_model')
+print("Model saved successfully!")</div>
+                <div class="cell-output" style="display:none;"></div>
+                <div class="cell-actions">
+                    <button class="run-btn" disabled>▶ Run Cell</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="download-section" id="downloadSection" style="display:none;">
+            <h3>📥 Download Results</h3>
+            <div class="download-btns">
+                <button class="download-model" id="downloadModelBtn">Download Model (.pkl)</button>
+                <button class="download-notebook" id="downloadNotebookBtn">Download Notebook (.ipynb)</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let executionId = null;
+        let currentCell = 0;
+        const cells = ['cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6'];
+        
+        // Load datasets
+        fetch('/api/datasets')
+            .then(r => r.json())
+            .then(data => {
+                const datasets = Array.isArray(data) ? data : data.datasets || [];
+                const select = document.getElementById('datasetSelect');
+                datasets.forEach(ds => {
+                    const opt = document.createElement('option');
+                    opt.value = ds.id;
+                    opt.textContent = ds.name;
+                    select.appendChild(opt);
+                });
+            });
+        
+        // Update target columns when dataset changes
+        document.getElementById('datasetSelect').addEventListener('change', function() {
+            const datasetId = this.value;
+            const targetSelect = document.getElementById('targetSelect');
+            targetSelect.innerHTML = '<option value="">Loading...</option>';
+            
+            if (!datasetId) {
+                targetSelect.innerHTML = '<option value="">Select Target Column</option>';
+                return;
+            }
+            
+            fetch(`/notebook-pipeline/api/dataset-columns/${datasetId}`)
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        targetSelect.innerHTML = '<option value="">Select Target Column</option>';
+                        result.columns.forEach(col => {
+                            const option = document.createElement('option');
+                            option.value = col;
+                            option.textContent = col;
+                            targetSelect.appendChild(option);
+                        });
+                    } else {
+                        targetSelect.innerHTML = '<option value="">Error loading columns</option>';
+                        alert('Error: ' + result.error);
+                    }
+                })
+                .catch(err => {
+                    targetSelect.innerHTML = '<option value="">Error loading columns</option>';
+                    console.error('Error fetching columns:', err);
+                });
+        });
+        
+        // Initialize notebook
+        document.getElementById('initBtn').addEventListener('click', function() {
+            const datasetId = document.getElementById('datasetSelect').value;
+            const target = document.getElementById('targetSelect').value;
+            const problemType = document.getElementById('problemType').value;
+            
+            if (!datasetId || !target) {
+                alert('Please select dataset and target column');
+                return;
+            }
+            
+            executionId = 'exec_' + Date.now();
+            currentCell = 0;
+            
+            // Enable run buttons
+            document.querySelectorAll('.run-btn').forEach(btn => btn.disabled = false);
+            document.getElementById('runAllBtn').disabled = false;
+            
+            // Store config
+            window.notebookConfig = { datasetId, target, problemType };
+            
+            alert('Notebook initialized! You can now run cells.');
+        });
+        
+        // Run individual cell
+        document.querySelectorAll('.run-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const cell = this.closest('.cell');
+                const cellId = cell.dataset.cell;
+                runCell(cellId);
+            });
+        });
+        
+        // Run all cells
+        document.getElementById('runAllBtn').addEventListener('click', async function() {
+            for (let cellId of cells) {
+                await runCell(cellId);
+            }
+            document.getElementById('downloadSection').style.display = 'block';
+        });
+        
+        async function runCell(cellId) {
+            const cell = document.querySelector(`[data-cell="${cellId}"]`);
+            const statusEl = cell.querySelector('.cell-status');
+            const outputEl = cell.querySelector('.cell-output');
+            const runBtn = cell.querySelector('.run-btn');
+            
+            // Update status
+            statusEl.textContent = 'Running...';
+            statusEl.className = 'cell-status status-running';
+            runBtn.disabled = true;
+            outputEl.style.display = 'none';
+            
+            try {
+                const response = await fetch('/notebook-pipeline/api/execute-cell', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cell_id: cellId,
+                        execution_id: executionId,
+                        ...window.notebookConfig
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusEl.textContent = 'Completed ✓';
+                    statusEl.className = 'cell-status status-completed';
+                    outputEl.textContent = result.output;
+                    outputEl.className = 'cell-output';
+                    outputEl.style.display = 'block';
+                } else {
+                    statusEl.textContent = 'Error ✗';
+                    statusEl.className = 'cell-status status-error';
+                    outputEl.textContent = 'Error: ' + result.error;
+                    outputEl.className = 'cell-output error';
+                    outputEl.style.display = 'block';
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error ✗';
+                statusEl.className = 'cell-status status-error';
+                outputEl.textContent = 'Error: ' + error.message;
+                outputEl.className = 'cell-output error';
+                outputEl.style.display = 'block';
+            }
+            
+            runBtn.disabled = false;
+        }
+        
+        // Download model
+        document.getElementById('downloadModelBtn').addEventListener('click', function() {
+            window.location.href = `/notebook-pipeline/api/download-model/${executionId}`;
+        });
+        
+        // Download notebook
+        document.getElementById('downloadNotebookBtn').addEventListener('click', function() {
+            window.location.href = `/notebook-pipeline/api/download-notebook/${executionId}`;
+        });
+    </script>
+</body>
+</html>

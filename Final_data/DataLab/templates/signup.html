@@ -2,58 +2,461 @@
 
 {% block title %}Sign Up - DataLab{% endblock %}
 
+{% block head %}
+<style>
+    /* Modern Signup Page Design - Matching Login */
+    .signup-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .signup-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background:
+            radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+        animation: pulse 15s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+
+    .signup-left-panel {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 1;
+    }
+
+    .logo-container {
+        background: white;
+        padding: 15px 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
+
+    .logo-container:hover {
+        transform: translateY(-5px);
+    }
+
+    .feature-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .feature-item:hover .feature-icon {
+        background: rgba(255, 255, 255, 0.25);
+        transform: scale(1.1);
+    }
+
+    .feature-item {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+    }
+
+    .feature-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(10px);
+    }
+
+    .signup-form-container {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.90) 100%);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 30px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4),
+                    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+        max-width: 520px;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+    }
+
+    .signup-form-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+        background-size: 200% 100%;
+        animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    .form-floating > .form-control {
+        background: rgba(255, 255, 255, 0.9);
+        color: #1F2937;
+        font-weight: 500;
+        border: 2px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 1rem 0.75rem;
+        height: 58px;
+        transition: all 0.3s ease;
+    }
+
+    .form-floating > .form-control:focus {
+        background: white;
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.15),
+                    0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .form-floating > .form-control:focus ~ label {
+        color: #667eea;
+    }
+
+    .form-floating > label {
+        color: #6B7280;
+        font-weight: 500;
+        padding: 1rem 0.75rem;
+    }
+
+    .btn-signup {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        font-size: 1.05rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-signup::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-signup:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .btn-signup:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        top: 0;
+        left: 0;
+        z-index: 0;
+    }
+
+    .shape {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+    }
+
+    .shape1 { width: 300px; height: 300px; top: -150px; left: -100px; animation: float 20s infinite; }
+    .shape2 { width: 200px; height: 200px; bottom: -100px; right: -50px; animation: float 15s infinite reverse; }
+    .shape3 { width: 150px; height: 150px; top: 50%; left: 10%; animation: float 18s infinite; }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+
+    .welcome-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        animation: pulse-badge 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+    }
+
+    .form-heading {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 2rem;
+        letter-spacing: -0.5px;
+    }
+
+    .form-subtitle {
+        color: #6B7280;
+        font-size: 1rem;
+        margin-top: 8px;
+    }
+
+    .form-text-color {
+        color: #374151 !important;
+        font-weight: 500;
+    }
+
+    .link-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        text-decoration: none;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .link-gradient::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+    }
+
+    .link-gradient:hover::after {
+        width: 100%;
+    }
+
+    .link-gradient:hover {
+        transform: translateY(-1px);
+    }
+
+    .alert {
+        border-radius: 12px;
+        border: none;
+        padding: 15px 20px;
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+        border: 2px solid rgba(220, 53, 69, 0.3);
+        color: #991B1B;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        border: 2px solid rgba(16, 185, 129, 0.3);
+        color: #065F46;
+        font-weight: 500;
+    }
+
+    .invalid-feedback, .valid-feedback {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+
+    .form-control.is-valid {
+        border-color: #10B981;
+    }
+
+    .form-control.is-invalid {
+        border-color: #EF4444;
+    }
+
+    @media (max-width: 768px) {
+        .signup-form-container {
+            margin: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row vh-100">
-    <div class="col-md-6 d-none d-md-flex bg-primary p-0 position-relative">
-        <div class="position-absolute top-0 start-0 p-4">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" height="60">
-        </div>
-        <div class="login-banner d-flex flex-column justify-content-center align-items-center text-white w-100 p-5">
-            <h1 class="display-4 fw-bold mb-4">DataLab</h1>
-            <h2 class="h3 mb-5">Web-based AI-Driven Data Preprocessing</h2>
-            <p class="lead">Join us and transform your data preparation workflow</p>
-        </div>
+<div class="signup-container">
+    <div class="floating-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
     </div>
-    <div class="col-md-6 d-flex align-items-center justify-content-center">
-        <div class="login-form-container p-4 p-md-5 rounded">
-            <div class="text-center mb-4">
-                <h2 class="h3 mb-3 fw-normal">Create Your Account</h2>
-                <p class="text-muted">Fill in the form to get started</p>
+
+    <div class="row min-vh-100 g-0">
+        <div class="col-lg-6 d-none d-lg-flex signup-left-panel">
+            <div class="d-flex flex-column justify-content-center align-items-start text-white w-100 p-5" style="max-width: 600px; margin: 0 auto;">
+                <div class="logo-container mb-5">
+                    <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="DataLab Logo" height="60">
+                </div>
+
+                <h1 class="display-4 fw-bold mb-3" style="font-size: 3rem; color: white;">Join DataLab</h1>
+                <div class="mb-4">
+                    <span style="display: inline-block; font-size: 0.85rem; font-weight: 600; background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%); color: white; padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);">Version 1.0.0 - Prototype</span>
+                </div>
+                <p class="lead mb-5" style="font-size: 1.25rem; opacity: 1; color: white;">Start your journey with AI-powered data preprocessing and unlock insights faster</p>
+
+                <div class="w-100">
+                    <div class="feature-item">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon me-4">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold">Quick Setup</h5>
+                                <p class="mb-0" style="opacity: 0.9; font-size: 0.95rem;">Get started in minutes with our intuitive interface</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon me-4">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold">Secure & Private</h5>
+                                <p class="mb-0" style="opacity: 0.9; font-size: 0.95rem;">Your data is encrypted and protected at all times</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon me-4">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold">Cloud-Based</h5>
+                                <p class="mb-0" style="opacity: 0.9; font-size: 0.95rem;">Access your projects from anywhere, anytime</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon me-4">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold">Community Support</h5>
+                                <p class="mb-0" style="opacity: 0.9; font-size: 0.95rem;">Join thousands of data scientists worldwide</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div id="errorAlert" class="alert d-none" role="alert"></div>
-
-            <form id="signupForm">
-                <div class="form-floating mb-3">
-                    <input type="text" class="form-control" id="username" placeholder="Username" required minlength="4" maxlength="50">
-                    <label for="username">Username</label>
-                    <div class="invalid-feedback">Username must be 4-50 characters long</div>
-                </div>
-                <div class="form-floating mb-3">
-                    <input type="email" class="form-control" id="email" placeholder="name@example.com" required
-                           pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$"
-                           title="Please enter a valid email address (e.g., user@gmail.com)"
-                           autocomplete="email">
-                    <label for="email">Email address</label>
-                    <div class="invalid-feedback" id="emailError">Please enter a valid email address (e.g., user@gmail.com)</div>
-                    <div class="valid-feedback">Email format is correct!</div>
-                </div>
-                <div class="form-floating mb-4">
-                    <input type="password" class="form-control" id="password" placeholder="Password" required
-                           minlength="8"
-                           pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
-                           title="Password must contain at least 8 characters with uppercase, lowercase, number, and special character">
-                    <label for="password">Password</label>
-                    <div class="invalid-feedback">Password must have: at least 8 characters, uppercase letter, lowercase letter, number, and special character</div>
-                    <div class="valid-feedback">Strong password!</div>
+        </div>
+        <div class="col-lg-6 d-flex align-items-center justify-content-center p-4">
+            <div class="signup-form-container p-5">
+                <!-- Mobile Logo -->
+                <div class="d-lg-none text-center mb-4">
+                    <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="DataLab Logo" height="50">
                 </div>
 
-                <button class="w-100 btn btn-lg btn-primary mb-3" type="submit">Sign up</button>
-
-                <div class="text-center mt-3">
-                    <p>Already have an account? <a href="{{ url_for('login') }}" class="link-primary">Sign in</a></p>
+                <div class="text-center mb-4">
+                    <span class="welcome-badge">Sign Up</span>
+                    <h2 class="h3 mb-2 fw-bold form-heading">Create Your Account</h2>
+                    <p class="form-subtitle">Fill in the details to get started</p>
                 </div>
-            </form>
+
+                <div id="errorAlert" class="alert d-none" role="alert"></div>
+
+                <form id="signupForm">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" placeholder="Username" required
+                               minlength="4" maxlength="50" autocomplete="username">
+                        <label for="username"><i class="fas fa-user me-2"></i>Username</label>
+                        <div class="invalid-feedback">Username must be 4-50 characters long</div>
+                        <div class="valid-feedback">Username looks good!</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" placeholder="name@example.com" required
+                               pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$"
+                               title="Please enter a valid email address (e.g., user@gmail.com)"
+                               autocomplete="email">
+                        <label for="email"><i class="fas fa-envelope me-2"></i>Email address</label>
+                        <div class="invalid-feedback" id="emailError">Please enter a valid email address</div>
+                        <div class="valid-feedback">Email format is correct!</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="password" placeholder="Password" required
+                               minlength="8"
+                               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+                               title="Password must contain at least 8 characters with uppercase, lowercase, number, and special character"
+                               autocomplete="new-password">
+                        <label for="password"><i class="fas fa-lock me-2"></i>Password</label>
+                        <div class="invalid-feedback">Password must have: 8+ characters, uppercase, lowercase, number & special character</div>
+                        <div class="valid-feedback">Strong password!</div>
+                    </div>
+
+                    <button class="w-100 btn btn-lg btn-signup mb-3" type="submit">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+
+                    <div class="text-center mt-4">
+                        <p class="form-text-color mb-0" style="font-size: 0.95rem;">
+                            Already have an account?
+                            <a href="{{ url_for('login') }}" class="link-gradient fw-bold">Sign In</a>
+                        </p>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4 pt-3" style="border-top: 2px solid rgba(102, 126, 234, 0.15);">
+                    <p class="form-text-color mb-0" style="font-size: 0.85rem;">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Your data is secure and encrypted
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

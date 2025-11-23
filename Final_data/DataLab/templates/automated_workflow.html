@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Workflow - DataLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .workflow-container { background: white; border-radius: 15px; padding: 30px; margin: 30px auto; max-width: 1400px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .workflow-header { text-align: center; margin-bottom: 30px; }
+        .workflow-header h1 { color: #667eea; font-weight: bold; }
+        
+        /* Pipeline Visualization */
+        .pipeline-canvas { background: #f8f9fa; border-radius: 10px; padding: 40px; min-height: 500px; position: relative; overflow-x: auto; }
+        .node { background: white; border: 3px solid #dee2e6; border-radius: 15px; padding: 20px; width: 180px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; margin: 20px; display: inline-block; }
+        .node:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .node.pending { border-color: #6c757d; background: #f8f9fa; }
+        .node.running { border-color: #ffc107; background: #fff3cd; animation: pulse 1.5s infinite; }
+        .node.completed { border-color: #28a745; background: #d4edda; }
+        .node.failed { border-color: #dc3545; background: #f8d7da; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        .node-icon { font-size: 40px; margin-bottom: 10px; }
+        .node.pending .node-icon { color: #6c757d; }
+        .node.running .node-icon { color: #ffc107; }
+        .node.completed .node-icon { color: #28a745; }
+        .node.failed .node-icon { color: #dc3545; }
+        
+        .node-name { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .node-desc { font-size: 11px; color: #6c757d; }
+        .node-status { margin-top: 10px; font-size: 12px; font-weight: bold; }
+        
+        /* Edges/Arrows */
+        .edge { position: absolute; height: 3px; background: #dee2e6; transform-origin: left center; z-index: 1; }
+        .edge.active { background: #28a745; }
+        .edge::after { content: ''; position: absolute; right: -8px; top: -5px; width: 0; height: 0; border-left: 10px solid #dee2e6; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+        .edge.active::after { border-left-color: #28a745; }
+        
+        /* Control Panel */
+        .control-panel { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .dataset-selector { margin-bottom: 15px; }
+        .config-section { margin-top: 15px; }
+        
+        /* Progress Bar */
+        .workflow-progress { margin: 20px 0; }
+        .progress { height: 30px; }
+        .progress-bar { font-size: 14px; font-weight: bold; }
+        
+        /* Logs */
+        .logs-container { background: #212529; color: #00ff00; border-radius: 10px; padding: 15px; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; margin-top: 20px; }
+        .log-entry { margin-bottom: 5px; }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+        
+        /* Results Panel */
+        .results-panel { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #667eea; }
+        
+        /* Buttons */
+        .btn-start { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 40px; font-size: 16px; font-weight: bold; border-radius: 25px; }
+        .btn-start:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-stop { background: #dc3545; }
+        
+        /* Node Layout */
+        .nodes-row { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; position: relative; }
+    </style>
+</head>
+<body>
+    <div class="workflow-container">
+        <div class="workflow-header">
+            <h1><i class="fas fa-project-diagram"></i> Automated Workflow System</h1>
+            <p class="text-muted">One-Click End-to-End Data Science Pipeline</p>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="dataset-selector">
+                        <label class="form-label"><strong>Select Dataset:</strong></label>
+                        <select id="datasetSelect" class="form-select">
+                            <option value="">-- Choose a dataset --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="config-section">
+                        <label class="form-label"><strong>Configuration:</strong></label>
+                        <div class="row">
+                            <div class="col-6">
+                                <select id="missingValueStrategy" class="form-select form-select-sm">
+                                    <option value="drop">Drop Missing</option>
+                                    <option value="mean">Fill with Mean</option>
+                                    <option value="median">Fill with Median</option>
+                                </select>
+                                <small class="text-muted">Missing Values</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="scaleFeatures" checked>
+                                    <label class="form-check-label" for="scaleFeatures">Scale Features</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-3">
+                <button id="startBtn" class="btn btn-start" onclick="startWorkflow()">
+                    <i class="fas fa-play"></i> Start Automated Workflow
+                </button>
+                <button id="stopBtn" class="btn btn-start btn-stop" onclick="stopWorkflow()" style="display:none;">
+                    <i class="fas fa-stop"></i> Stop Workflow
+                </button>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="workflow-progress">
+            <div class="progress">
+                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+            </div>
+        </div>
+        
+        <!-- Pipeline Visualization -->
+        <div class="pipeline-canvas" id="pipelineCanvas">
+            <div class="nodes-row" id="nodesContainer">
+                <!-- Nodes will be dynamically generated -->
+            </div>
+        </div>
+        
+        <!-- Logs -->
+        <div class="logs-container" id="logsContainer">
+            <div class="log-entry log-info">[SYSTEM] Automated Workflow System Ready</div>
+            <div class="log-entry log-info">[SYSTEM] Select a dataset and click 'Start Automated Workflow' to begin</div>
+        </div>
+        
+        <!-- Results Panel -->
+        <div class="results-panel" id="resultsPanel" style="display:none;">
+            <h4><i class="fas fa-chart-line"></i> Workflow Results</h4>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentExecution = null;
+        let pipelineNodes = [];
+        let isRunning = false;
+        
+        // Icon mapping
+        const iconMap = {
+            'upload': 'fa-upload',
+            'broom': 'fa-broom',
+            'chart-bar': 'fa-chart-bar',
+            'cogs': 'fa-cogs',
+            'brain': 'fa-brain',
+            'download': 'fa-download'
+        };
+        
+        // Load datasets on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDatasets();
+            loadPipelineStructure();
+        });
+        
+        async function loadDatasets() {
+            try {
+                const response = await fetch('/automated-workflow/api/user-datasets');
+                const data = await response.json();
+                
+                const select = document.getElementById('datasetSelect');
+                select.innerHTML = '<option value="">-- Choose a dataset --</option>';
+                
+                if (data.success && data.datasets.length > 0) {
+                    data.datasets.forEach(ds => {
+                        const option = document.createElement('option');
+                        option.value = ds.id;
+                        option.textContent = `${ds.filename} (ID: ${ds.id})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    addLog('No datasets found. Please upload a dataset first.', 'info');
+                }
+            } catch (error) {
+                addLog('Error loading datasets: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadPipelineStructure() {
+            try {
+                const response = await fetch('/automated-workflow/api/pipeline-structure');
+                const data = await response.json();
+                
+                if (data.success) {
+                    pipelineNodes = data.nodes;
+                    renderPipeline();
+                }
+            } catch (error) {
+                addLog('Error loading pipeline structure: ' + error.message, 'error');
+            }
+        }
+        
+        function renderPipeline() {
+            const container = document.getElementById('nodesContainer');
+            container.innerHTML = '';
+            
+            pipelineNodes.forEach((node, index) => {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node pending';
+                nodeDiv.id = node.id;
+                nodeDiv.innerHTML = `
+                    <div class="node-icon"><i class="fas ${iconMap[node.icon]}"></i></div>
+                    <div class="node-name">${node.name}</div>
+                    <div class="node-desc">${node.description}</div>
+                    <div class="node-status">Pending</div>
+                `;
+                container.appendChild(nodeDiv);
+                
+                // Add arrow between nodes
+                if (index < pipelineNodes.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'node-arrow';
+                    arrow.innerHTML = '<i class="fas fa-arrow-right" style="font-size:30px; color:#dee2e6; margin:0 10px;"></i>';
+                    container.appendChild(arrow);
+                }
+            });
+        }
+        
+        async function startWorkflow() {
+            const datasetId = document.getElementById('datasetSelect').value;
+            if (!datasetId) {
+                alert('Please select a dataset first!');
+                return;
+            }
+            
+            const config = {
+                missing_value_strategy: document.getElementById('missingValueStrategy').value,
+                scale_features: document.getElementById('scaleFeatures').checked
+            };
+            
+            isRunning = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            document.getElementById('resultsPanel').style.display = 'none';
+            
+            addLog('[WORKFLOW] Starting automated workflow execution...', 'info');
+            
+            try {
+                // Start execution
+                const response = await fetch('/automated-workflow/api/start-execution', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dataset_id: datasetId, config: config})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    currentExecution = data.execution_id;
+                    addLog(`[WORKFLOW] Execution started: ${currentExecution}`, 'success');
+                    
+                    // Execute nodes sequentially
+                    await executeNodesSequentially();
+                } else {
+                    addLog('[ERROR] ' + data.error, 'error');
+                    resetWorkflow();
+                }
+            } catch (error) {
+                addLog('[ERROR] ' + error.message, 'error');
+                resetWorkflow();
+            }
+        }
+        
+        async function executeNodesSequentially() {
+            for (let i = 0; i < pipelineNodes.length && isRunning; i++) {
+                const node = pipelineNodes[i];
+                await executeNode(node, i);
+                
+                if (!isRunning) break;
+                
+                // Small delay between nodes
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            if (isRunning) {
+                addLog('[WORKFLOW] All nodes completed successfully!', 'success');
+                showResults();
+            }
+            
+            resetWorkflow();
+        }
+        
+        async function executeNode(node, index) {
+            const nodeElement = document.getElementById(node.id);
+            
+            // Update node status to running
+            nodeElement.className = 'node running';
+            nodeElement.querySelector('.node-status').textContent = 'Running...';
+            addLog(`[${node.name.toUpperCase()}] Starting execution...`, 'info');
+            
+            // Update progress
+            const progress = Math.round(((index + 0.5) / pipelineNodes.length) * 100);
+            updateProgress(progress);
+            
+            try {
+                const response = await fetch(`/automated-workflow/api/execute-node/${currentExecution}/${node.id}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Node completed successfully
+                    nodeElement.className = 'node completed';
+                    nodeElement.querySelector('.node-status').textContent = 'Completed';
+                    addLog(`[${node.name.toUpperCase()}] ${data.result.message}`, 'success');
+                    
+                    // Update progress
+                    const finalProgress = Math.round(((index + 1) / pipelineNodes.length) * 100);
+                    updateProgress(finalProgress);
+                } else {
+                    // Node failed
+                    nodeElement.className = 'node failed';
+                    nodeElement.querySelector('.node-status').textContent = 'Failed';
+                    addLog(`[${node.name.toUpperCase()}] ERROR: ${data.result.error}`, 'error');
+                    isRunning = false;
+                }
+            } catch (error) {
+                nodeElement.className = 'node failed';
+                nodeElement.querySelector('.node-status').textContent = 'Failed';
+                addLog(`[${node.name.toUpperCase()}] ERROR: ${error.message}`, 'error');
+                isRunning = false;
+            }
+        }
+        
+        function stopWorkflow() {
+            isRunning = false;
+            addLog('[WORKFLOW] Workflow stopped by user', 'info');
+            resetWorkflow();
+        }
+        
+        function resetWorkflow() {
+            isRunning = false;
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+        }
+        
+        function updateProgress(percent) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+        }
+        
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logsContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+        
+        async function showResults() {
+            try {
+                const response = await fetch(`/automated-workflow/api/execution-status/${currentExecution}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const execution = data.execution;
+                    const resultsPanel = document.getElementById('resultsPanel');
+                    const resultsContent = document.getElementById('resultsContent');
+                    
+                    let html = '';
+                    
+                    // Display results from each node
+                    pipelineNodes.forEach(node => {
+                        if (execution.results[node.id]) {
+                            const result = execution.results[node.id];
+                            html += `
+                                <div class="result-card">
+                                    <h5><i class="fas ${iconMap[node.icon]}"></i> ${node.name}</h5>
+                                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    resultsContent.innerHTML = html;
+                    resultsPanel.style.display = 'block';
+                }
+            } catch (error) {
+                addLog('[ERROR] Failed to load results: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

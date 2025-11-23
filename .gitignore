@@ -1,6 +1,45 @@
 # Python
 __pycache__/
 *.py[cod]
+*.so
+
+# Environment
+.env
+venv/
+env/
+.venv/
+
+# OS files
+.DS_Store
+__MACOSX/
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Uploads and generated data
+Final_data/DataLab/uploads/
+Final_data/DataLab/static/uploads/
+uploads/
+
+# IDEs
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+*.sqlite3
+*.sqlite
+
+# Firebase/admin service accounts
+Final_data/DataLab/templates/*firebase*.json
+# Python
+__pycache__/
+*.py[cod]
 *$py.class
 *.so
 .Python

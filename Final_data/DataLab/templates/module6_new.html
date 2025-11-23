@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Engineering - DataLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #667eea;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #f56565;
+        }
+        body { background: #f8f9fa; font-family: 'Inter', sans-serif; }
+        .header { background: var(--primary); color: white; padding: 20px 0; }
+        .card { border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .btn-primary { background: var(--primary); border: none; }
+        .btn-primary:hover { background: #5568d3; }
+        .method-card { border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 10px 0; cursor: pointer; transition: all 0.3s; }
+        .method-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(102,126,234,0.15); }
+        .method-card.active { border-color: var(--primary); background: #f3f4ff; }
+        .result-box { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em; }
+        .badge-custom { padding: 6px 12px; border-radius: 16px; font-size: 0.85em; }
+        .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; }
+        .loading-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 12px; text-align: center; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1><i class="fas fa-magic"></i> Feature Engineering Studio</h1>
+            <p class="mb-0">Advanced feature selection and engineering</p>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <!-- Step 1: Load Dataset -->
+        <div class="card">
+            <div class="card-body">
+                <h3><i class="fas fa-database"></i> Step 1: Load Dataset</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <input type="file" id="fileInput" accept=".csv" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <select id="datasetSelector" class="form-select">
+                            <option value="">-- Select existing dataset --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="datasetInfo" class="mt-3" style="display:none;">
+                    <div class="alert alert-success">
+                        <strong>Dataset Loaded:</strong> <span id="datasetName"></span><br>
+                        <strong>Shape:</strong> <span id="datasetShape"></span><br>
+                        <strong>Target:</strong> <span id="datasetTarget"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Choose Mode -->
+        <div class="card">
+            <div class="card-body">
+                <h3><i class="fas fa-cogs"></i> Step 2: Choose Feature Engineering Mode</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="method-card active" id="automatedMode" onclick="selectMode('automated')">
+                            <h4><i class="fas fa-robot"></i> Automated</h4>
+                            <p>AI-powered feature selection using Forward/Backward Selection and Feature Importance</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="method-card" id="manualMode" onclick="selectMode('manual')">
+                            <h4><i class="fas fa-hand-sparkles"></i> Manual</h4>
+                            <p>Manual feature selection using Correlation Analysis and Variance Threshold</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Automated Methods -->
+        <div id="automatedMethods" class="card">
+            <div class="card-body">
+                <h3><i class="fas fa-robot"></i> Automated Feature Selection</h3>
+                
+                <div class="method-card" onclick="runMethod('forward')">
+                    <h5><i class="fas fa-arrow-right"></i> Forward Selection</h5>
+                    <p>Start with 0 features, add one at a time that improves performance most</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Max Features:</label>
+                            <input type="number" id="forwardMaxFeatures" class="form-control" value="10" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label>CV Folds:</label>
+                            <input type="number" id="forwardCV" class="form-control" value="3" min="2" max="10">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="runForwardSelection(event)">
+                        <i class="fas fa-play"></i> Run Forward Selection
+                    </button>
+                </div>
+
+                <div class="method-card" onclick="runMethod('backward')">
+                    <h5><i class="fas fa-arrow-left"></i> Backward Elimination</h5>
+                    <p>Start with all features, remove least important one at a time</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>CV Folds:</label>
+                            <input type="number" id="backwardCV" class="form-control" value="3" min="2" max="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label>Threshold:</label>
+                            <input type="number" id="backwardThreshold" class="form-control" value="0.01" step="0.001">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="runBackwardElimination(event)">
+                        <i class="fas fa-play"></i> Run Backward Elimination
+                    </button>
+                </div>
+
+                <div class="method-card" onclick="runMethod('importance')">
+                    <h5><i class="fas fa-star"></i> Feature Importance</h5>
+                    <p>Use Random Forest, Linear Models, and Decision Trees to rank features</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Top N Features:</label>
+                            <input type="number" id="importanceTopN" class="form-control" value="10" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label>Methods:</label>
+                            <select id="importanceMethods" class="form-select" multiple>
+                                <option value="random_forest" selected>Random Forest</option>
+                                <option value="linear" selected>Linear Model</option>
+                                <option value="tree" selected>Decision Tree</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="runFeatureImportance(event)">
+                        <i class="fas fa-play"></i> Run Feature Importance
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Methods -->
+        <div id="manualMethods" class="card" style="display:none;">
+            <div class="card-body">
+                <h3><i class="fas fa-hand-sparkles"></i> Manual Feature Selection</h3>
+                
+                <div class="method-card" onclick="runMethod('correlation')">
+                    <h5><i class="fas fa-chart-line"></i> Correlation Analysis</h5>
+                    <p>Remove features with low target correlation and high multicollinearity</p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label>Target Threshold:</label>
+                            <input type="number" id="corrTargetThreshold" class="form-control" value="0.05" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Multicollinearity Threshold:</label>
+                            <input type="number" id="corrMultiThreshold" class="form-control" value="0.9" step="0.05">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Method:</label>
+                            <select id="corrMethod" class="form-select">
+                                <option value="pearson">Pearson</option>
+                                <option value="spearman">Spearman</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="runCorrelationAnalysis(event)">
+                        <i class="fas fa-play"></i> Run Correlation Analysis
+                    </button>
+                </div>
+
+                <div class="method-card" onclick="runMethod('variance')">
+                    <h5><i class="fas fa-chart-bar"></i> Variance Threshold</h5>
+                    <p>Remove low-variance and quasi-constant features</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Variance Threshold:</label>
+                            <input type="number" id="varThreshold" class="form-control" value="0.01" step="0.001">
+                        </div>
+                        <div class="col-md-6">
+                            <label>Quasi-Constant Threshold:</label>
+                            <input type="number" id="quasiThreshold" class="form-control" value="0.95" step="0.01">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="runVarianceThreshold(event)">
+                        <i class="fas fa-play"></i> Run Variance Threshold
+                    </button>
+                </div>
+
+                <div class="method-card" onclick="runMethod('vif')">
+                    <h5><i class="fas fa-project-diagram"></i> VIF Analysis</h5>
+                    <p>Detect multicollinearity using Variance Inflation Factor</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>VIF Threshold:</label>
+                            <input type="number" id="vifThreshold" class="form-control" value="10" min="1">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="runVIFAnalysis(event)">
+                        <i class="fas fa-play"></i> Run VIF Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="card" style="display:none;">
+            <div class="card-body">
+                <h3><i class="fas fa-chart-pie"></i> Results</h3>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h4>Processing...</h4>
+            <p id="loadingMsg">Running feature selection...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentMode = 'automated';
+        let currentDataset = null;
+
+        // Load datasets on page load
+        fetch('/module6/available_datasets')
+            .then(r => r.json())
+            .then(data => {
+                const select = document.getElementById('datasetSelector');
+                data.datasets.forEach(ds => {
+                    const opt = document.createElement('option');
+                    opt.value = ds.id;
+                    opt.textContent = `${ds.name} (${ds.rows}x${ds.columns})`;
+                    select.appendChild(opt);
+                });
+            });
+
+        // File upload
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            showLoading('Uploading file...');
+            fetch('/module6/upload', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        currentDataset = data;
+                        showDatasetInfo(data);
+                    }
+                });
+        });
+
+        // Dataset selector
+        document.getElementById('datasetSelector').addEventListener('change', function() {
+            const id = this.value;
+            if (!id) return;
+            
+            showLoading('Loading dataset...');
+            fetch(`/module6/load_dataset/${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        currentDataset = data;
+                        showDatasetInfo(data);
+                    }
+                });
+        });
+
+        function showDatasetInfo(data) {
+            document.getElementById('datasetName').textContent = data.dataset_info ? data.dataset_info.name : 'Uploaded File';
+            document.getElementById('datasetShape').textContent = `${data.shape[0]} rows x ${data.shape[1]} columns`;
+            document.getElementById('datasetTarget').textContent = data.detected_target;
+            document.getElementById('datasetInfo').style.display = 'block';
+        }
+
+        function selectMode(mode) {
+            currentMode = mode;
+            document.getElementById('automatedMode').classList.toggle('active', mode === 'automated');
+            document.getElementById('manualMode').classList.toggle('active', mode === 'manual');
+            document.getElementById('automatedMethods').style.display = mode === 'automated' ? 'block' : 'none';
+            document.getElementById('manualMethods').style.display = mode === 'manual' ? 'block' : 'none';
+        }
+
+        function runForwardSelection(e) {
+            e.stopPropagation();
+            if (!currentDataset) { alert('Please load a dataset first'); return; }
+            
+            const maxFeatures = document.getElementById('forwardMaxFeatures').value;
+            const cvFolds = document.getElementById('forwardCV').value;
+            
+            showLoading('Running Forward Selection...');
+            fetch('/module6/automated/forward_selection', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ max_features: parseInt(maxFeatures), cv_folds: parseInt(cvFolds) })
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                displayResults(data);
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Error: ' + err.message);
+            });
+        }
+
+        function runBackwardElimination(e) {
+            e.stopPropagation();
+            if (!currentDataset) { alert('Please load a dataset first'); return; }
+            
+            const cvFolds = document.getElementById('backwardCV').value;
+            const threshold = document.getElementById('backwardThreshold').value;
+            
+            showLoading('Running Backward Elimination...');
+            fetch('/module6/automated/backward_elimination', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ cv_folds: parseInt(cvFolds), threshold: parseFloat(threshold) })
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                displayResults(data);
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Error: ' + err.message);
+            });
+        }
+
+        function runFeatureImportance(e) {
+            e.stopPropagation();
+            if (!currentDataset) { alert('Please load a dataset first'); return; }
+            
+            const topN = document.getElementById('importanceTopN').value;
+            const methods = Array.from(document.getElementById('importanceMethods').selectedOptions).map(o => o.value);
+            
+            showLoading('Calculating Feature Importance...');
+            fetch('/module6/automated/feature_importance', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ top_n: parseInt(topN), methods: methods })
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                displayResults(data);
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Error: ' + err.message);
+            });
+        }
+
+        function runCorrelationAnalysis(e) {
+            e.stopPropagation();
+            if (!currentDataset) { alert('Please load a dataset first'); return; }
+            
+            const targetThreshold = document.getElementById('corrTargetThreshold').value;
+            const multiThreshold = document.getElementById('corrMultiThreshold').value;
+            const method = document.getElementById('corrMethod').value;
+            
+            showLoading('Running Correlation Analysis...');
+            fetch('/module6/manual/correlation_analysis', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    target_threshold: parseFloat(targetThreshold),
+                    multicollinearity_threshold: parseFloat(multiThreshold),
+                    method: method
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                displayResults(data);
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Error: ' + err.message);
+            });
+        }
+
+        function runVarianceThreshold(e) {
+            e.stopPropagation();
+            if (!currentDataset) { alert('Please load a dataset first'); return; }
+            
+            const varThreshold = document.getElementById('varThreshold').value;
+            const quasiThreshold = document.getElementById('quasiThreshold').value;
+            
+            showLoading('Running Variance Threshold...');
+            fetch('/module6/manual/variance_threshold', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    threshold: parseFloat(varThreshold),
+                    quasi_constant_threshold: parseFloat(quasiThreshold)
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                displayResults(data);
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Error: ' + err.message);
+            });
+        }
+
+        function runVIFAnalysis(e) {
+            e.stopPropagation();
+            if (!currentDataset) { alert('Please load a dataset first'); return; }
+            
+            const threshold = document.getElementById('vifThreshold').value;
+            
+            showLoading('Running VIF Analysis...');
+            fetch('/module6/manual/vif_analysis', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ threshold: parseInt(threshold) })
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                displayResults(data);
+            })
+            .catch(err => {
+                hideLoading();
+                alert('Error: ' + err.message);
+            });
+        }
+
+        function displayResults(data) {
+            const results = data.results;
+            let html = `<h4>${data.method.replace(/_/g, ' ').toUpperCase()}</h4>`;
+            html += `<p class="text-success"><strong>Selected Features:</strong> ${results.n_features}</p>`;
+            
+            if (results.selected_features) {
+                html += '<div class="result-box">';
+                html += '<strong>Selected Features:</strong><br>';
+                html += results.selected_features.join(', ');
+                html += '</div>';
+            }
+            
+            if (results.final_score) {
+                html += `<p class="mt-3"><strong>Final Score:</strong> ${results.final_score.toFixed(4)}</p>`;
+            }
+            
+            if (results.sorted_features) {
+                html += '<h5 class="mt-3">Top 10 Features by Importance:</h5>';
+                html += '<table class="table table-sm"><thead><tr><th>Feature</th><th>Score</th></tr></thead><tbody>';
+                results.sorted_features.slice(0, 10).forEach(([feat, score]) => {
+                    html += `<tr><td>${feat}</td><td>${score.toFixed(4)}</td></tr>`;
+                });
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('resultsContent').innerHTML = html;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showLoading(msg) {
+            document.getElementById('loadingMsg').textContent = msg;
+            document.getElementById('loading').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

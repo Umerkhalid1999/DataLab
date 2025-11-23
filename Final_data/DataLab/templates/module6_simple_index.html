@@ -209,25 +209,73 @@
 
     <div class="container my-5">
         
-        <!-- Upload Section -->
+        <!-- Dataset Selection Section -->
         <div class="row justify-content-center" id="uploadSection">
-            <div class="col-md-8">
-                <div class="upload-area" id="uploadArea">
-                    <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
-                    <h3>Drop your dataset here or click to browse</h3>
-                    <p class="text-muted mb-4">Supports CSV and Excel files • Max size: 100MB</p>
-                    <input type="file" id="fileInput" accept=".csv,.xlsx" style="display: none;">
-                    <button class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-folder-open me-2"></i>Choose File
-                    </button>
+            <div class="col-md-10">
+                <!-- Dataset Selection Tabs -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="datasetTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="existing-tab" data-bs-toggle="tab" data-bs-target="#existing-dataset" type="button" role="tab">
+                                    <i class="fas fa-database me-2"></i>Select Existing Dataset
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-dataset" type="button" role="tab">
+                                    <i class="fas fa-upload me-2"></i>Upload New Dataset
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="datasetTabsContent">
+                            <!-- Existing Dataset Tab -->
+                            <div class="tab-pane fade show active" id="existing-dataset" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <label for="datasetSelect" class="form-label">
+                                            <i class="fas fa-list me-2"></i>Select Dataset from DataLab
+                                        </label>
+                                        <select class="form-select form-select-lg" id="datasetSelect">
+                                            <option value="">Choose a dataset...</option>
+                                        </select>
+                                        <div class="form-text" id="datasetInfo"></div>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button class="btn btn-success btn-lg w-100" id="loadDatasetBtn" disabled>
+                                            <i class="fas fa-play me-2"></i>Load & Analyze
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mt-3" id="noDatasetsAlert" style="display: none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No datasets found. Please upload a dataset first or switch to the upload tab.
+                                </div>
+                            </div>
+
+                            <!-- Upload Dataset Tab -->
+                            <div class="tab-pane fade" id="upload-dataset" role="tabpanel">
+                                <div class="upload-area" id="uploadArea">
+                                    <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                                    <h4>Drop your dataset here or click to browse</h4>
+                                    <p class="text-muted mb-4">Supports CSV and Excel files • Max size: 100MB</p>
+                                    <input type="file" id="fileInput" accept=".csv,.xlsx" style="display: none;">
+                                    <button class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
+                                        <i class="fas fa-folder-open me-2"></i>Choose File
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="text-center mt-4">
+
+                <div class="text-center">
                     <div class="row">
                         <div class="col-md-4">
-                            <i class="fas fa-upload fa-2x text-primary mb-2"></i>
-                            <h6>1. Upload Data</h6>
-                            <small class="text-muted">Upload your CSV or Excel file</small>
+                            <i class="fas fa-database fa-2x text-primary mb-2"></i>
+                            <h6>1. Select Dataset</h6>
+                            <small class="text-muted">Choose from existing datasets or upload new</small>
                         </div>
                         <div class="col-md-4">
                             <i class="fas fa-cogs fa-2x text-success mb-2"></i>
@@ -359,17 +407,22 @@
             <div class="result-card text-center">
                 <h5 class="mb-3"><i class="fas fa-download me-2"></i>Export Results</h5>
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <button class="btn btn-outline-primary w-100" onclick="exportResults('json')">
                             <i class="fas fa-file-code me-2"></i>JSON Report
                         </button>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <button class="btn btn-outline-success w-100" onclick="exportResults('csv')">
-                            <i class="fas fa-file-csv me-2"></i>Feature List CSV
+                            <i class="fas fa-file-csv me-2"></i>Feature Importance
                         </button>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-warning w-100" onclick="exportResults('features')">
+                            <i class="fas fa-list me-2"></i>Created Features
+                        </button>
+                    </div>
+                    <div class="col-md-3">
                         <button class="btn btn-outline-info w-100" onclick="startOver()">
                             <i class="fas fa-redo me-2"></i>Analyze New Dataset
                         </button>
@@ -390,7 +443,22 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Safe toFixed helper to handle null/undefined values
+        function safeToFixed(value, decimals) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return 'N/A';
+            }
+            return parseFloat(value).toFixed(decimals);
+        }
+
         let analysisResults = null;
+        let availableDatasets = [];
+
+        // Dataset selection elements
+        const datasetSelect = document.getElementById('datasetSelect');
+        const loadDatasetBtn = document.getElementById('loadDatasetBtn');
+        const datasetInfo = document.getElementById('datasetInfo');
+        const noDatasetsAlert = document.getElementById('noDatasetsAlert');
 
         // File upload handling
         const uploadArea = document.getElementById('uploadArea');
@@ -424,6 +492,142 @@
                 handleFileUpload(e.target.files[0]);
             }
         });
+
+        // Dataset selection handling
+        datasetSelect.addEventListener('change', handleDatasetSelection);
+        loadDatasetBtn.addEventListener('click', handleLoadDataset);
+
+        // Load available datasets on page load
+        async function loadAvailableDatasets() {
+            try {
+                const response = await fetch('/module6/available_datasets');
+                if (!response.ok) {
+                    throw new Error('Failed to load datasets');
+                }
+
+                const data = await response.json();
+                availableDatasets = data.datasets;
+
+                // Populate dropdown
+                datasetSelect.innerHTML = '<option value="">Choose a dataset...</option>';
+
+                if (availableDatasets.length === 0) {
+                    noDatasetsAlert.style.display = 'block';
+                    loadDatasetBtn.disabled = true;
+                    return;
+                }
+
+                noDatasetsAlert.style.display = 'none';
+
+                availableDatasets.forEach(dataset => {
+                    const option = document.createElement('option');
+                    option.value = dataset.id;
+                    option.textContent = `${dataset.name} (${dataset.rows} rows × ${dataset.columns} cols)`;
+                    datasetSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error loading datasets:', error);
+                showErrorMessage('Failed to load available datasets. Please refresh the page.');
+                noDatasetsAlert.style.display = 'block';
+                loadDatasetBtn.disabled = true;
+            }
+        }
+
+        function handleDatasetSelection() {
+            const selectedId = datasetSelect.value;
+            const selectedDataset = availableDatasets.find(ds => ds.id == selectedId);
+
+            if (selectedDataset) {
+                datasetInfo.innerHTML = `
+                    <strong>${selectedDataset.name}</strong><br>
+                    <small class="text-muted">
+                        ${selectedDataset.rows} rows × ${selectedDataset.columns} columns •
+                        Format: ${selectedDataset.file_type.toUpperCase()}
+                    </small>
+                `;
+                loadDatasetBtn.disabled = false;
+            } else {
+                datasetInfo.innerHTML = '';
+                loadDatasetBtn.disabled = true;
+            }
+        }
+
+        async function handleLoadDataset() {
+            const selectedId = datasetSelect.value;
+            if (!selectedId) {
+                showErrorMessage('Please select a dataset first.');
+                return;
+            }
+
+            // Show loading
+            showLoading();
+
+            try {
+                // Step 1: Load the dataset
+                updateProgress(1, 'active');
+
+                const loadResponse = await fetch(`/module6/load_dataset/${selectedId}`, {
+                    method: 'POST'
+                });
+
+                if (!loadResponse.ok) {
+                    const errorData = await loadResponse.json();
+                    throw new Error(errorData.error || 'Failed to load dataset');
+                }
+
+                const loadResult = await loadResponse.json();
+                updateProgress(1, 'completed');
+
+                // Show dataset info
+                displayDatasetOverview(loadResult);
+
+                // Step 2: Run complete analysis
+                updateProgress(2, 'active');
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const analysisResponse = await fetch('/module6/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!analysisResponse.ok) {
+                    const errorText = await analysisResponse.text();
+                    let errorMessage;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.error || 'Analysis failed';
+                    } catch {
+                        errorMessage = `Analysis failed: ${analysisResponse.status} ${analysisResponse.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const analysisResult = await analysisResponse.json();
+
+                // Update progress through all steps
+                for (let i = 2; i <= 8; i++) {
+                    updateProgress(i, 'active');
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                    updateProgress(i, 'completed');
+                }
+
+                // Store results and display
+                analysisResults = analysisResult.results;
+                displayResults(analysisResults);
+
+                // Hide loading and show results
+                hideLoading();
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+
+            } catch (error) {
+                hideLoading();
+                showErrorMessage(error.message);
+            }
+        }
 
         async function handleFileUpload(file) {
             const formData = new FormData();
@@ -615,7 +819,7 @@
                                         <div class="progress-bar bg-primary" style="width: ${percentage}%"></div>
                                     </div>
                                 </div>
-                                <small class="text-muted">${score.toFixed(3)}</small>
+                                <small class="text-muted">${safeToFixed(score, 3)}</small>
                             </div>
                         `;
                     });
@@ -692,7 +896,7 @@
                             </div>
                             <div class="text-end">
                                 <div class="h5 mb-0 ${textClass}">
-                                    ${result.mean_score.toFixed(4)}
+                                    ${safeToFixed(result.mean_score, 4)}
                                 </div>
                                 <small class="${isTopResult ? 'text-white-50' : 'text-muted'}">
                                     ${result.metric.toUpperCase()}
@@ -722,12 +926,12 @@
                 html += `
                     <div class="col-md-6">
                         <h6><i class="fas fa-chart-line me-2"></i>PCA Analysis</h6>
-                        <p class="text-muted">First 2 components explain <strong>${(cumulative[1] * 100).toFixed(1)}%</strong> of variance</p>
+                        <p class="text-muted">First 2 components explain <strong>${safeToFixed(cumulative[1] * 100, 1)}%</strong> of variance</p>
                         <div class="progress mb-2">
                             <div class="progress-bar bg-info" style="width: ${variance[0] * 100}%"></div>
                             <div class="progress-bar bg-warning" style="width: ${variance[1] * 100}%"></div>
                         </div>
-                        <small class="text-muted">Component 1: ${(variance[0] * 100).toFixed(1)}% | Component 2: ${(variance[1] * 100).toFixed(1)}%</small>
+                        <small class="text-muted">Component 1: ${safeToFixed(variance[0] * 100, 1)}% | Component 2: ${safeToFixed(variance[1] * 100, 1)}%</small>
                     </div>
                 `;
             }
@@ -833,7 +1037,7 @@
             let html = `
                 <div class="alert alert-info mb-3">
                     <i class="fas fa-brain me-2"></i>
-                    <strong>Confidence Score:</strong> ${(decisions.confidence_score * 100).toFixed(1)}%
+                    <strong>Confidence Score:</strong> ${safeToFixed(decisions.confidence_score * 100, 1)}%
                 </div>
                 <div class="row">
             `;
@@ -988,16 +1192,45 @@
                 .replace(/\n/g, '<br>');
         }
 
-        function downloadOptimizedDataset() {
+        async function downloadOptimizedDataset() {
             if (!analysisResults || !analysisResults.optimized_dataset || !analysisResults.optimized_dataset.optimized_dataset) {
                 alert('No optimized dataset available for download');
                 return;
             }
 
-            // Create CSV content from the optimized dataset
-            const dataset = analysisResults.optimized_dataset.optimized_dataset;
-            // Note: In a real implementation, you'd need to send this to the server to convert to CSV
-            alert('Dataset download feature would be implemented with a server endpoint to convert the optimized dataset to CSV format.');
+            try {
+                showLoading();
+                const response = await fetch('/module6/download/optimized_dataset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        analysis_results: analysisResults
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Download failed');
+                }
+
+                // Create download link
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'optimized_dataset.csv';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                alert('Error downloading optimized dataset: ' + error.message);
+            }
         }
 
         function displayRecommendations(results) {
@@ -1081,41 +1314,51 @@
             document.getElementById('recommendationsResults').innerHTML = html;
         }
 
-        function exportResults(format) {
+        async function exportResults(format) {
             if (!analysisResults) {
                 alert('No results to export');
                 return;
             }
-            
-            if (format === 'json') {
-                const dataStr = JSON.stringify(analysisResults, null, 2);
-                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                
-                const exportFileDefaultName = 'feature_engineering_results.json';
-                const linkElement = document.createElement('a');
-                linkElement.setAttribute('href', dataUri);
-                linkElement.setAttribute('download', exportFileDefaultName);
-                linkElement.click();
-            } else if (format === 'csv') {
-                // Export feature importance as CSV
-                let csvContent = 'Feature,Method,Importance\n';
-                
-                if (analysisResults.feature_importance && !analysisResults.feature_importance.error) {
-                    Object.entries(analysisResults.feature_importance).forEach(([method, scores]) => {
-                        if (Array.isArray(scores)) {
-                            scores.forEach(([feature, score]) => {
-                                csvContent += `"${feature}","${method}",${score}\n`;
-                            });
-                        }
-                    });
+
+            try {
+                showLoading();
+                let endpoint, filename;
+
+                if (format === 'json') {
+                    endpoint = '/module6/download/analysis_results';
+                    filename = 'feature_engineering_analysis.json';
+                } else if (format === 'csv') {
+                    endpoint = '/module6/download/feature_importance';
+                    filename = 'feature_importance.csv';
+                } else if (format === 'features') {
+                    endpoint = '/module6/download/feature_list';
+                    filename = 'created_features.csv';
+                } else {
+                    throw new Error('Unsupported export format');
                 }
-                
-                const dataUri = 'data:text/csv;charset=utf-8,'+ encodeURIComponent(csvContent);
-                const exportFileDefaultName = 'feature_importance.csv';
-                const linkElement = document.createElement('a');
-                linkElement.setAttribute('href', dataUri);
-                linkElement.setAttribute('download', exportFileDefaultName);
-                linkElement.click();
+
+                const response = await fetch(endpoint);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Export failed');
+                }
+
+                // Create download link
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                alert('Error exporting results: ' + error.message);
             }
         }
 
@@ -1143,6 +1386,7 @@
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             checkServerConnection();
+            loadAvailableDatasets();
         });
     </script>
 </body>

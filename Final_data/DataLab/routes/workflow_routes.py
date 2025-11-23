@@ -50,7 +50,49 @@ def workflow_page(dataset_id):
         flash('Dataset not found')
         return redirect(url_for('dashboard'))
     
-    return render_template('workflow.html', dataset=dataset)
+    # Use the new simplified template
+    return render_template('workflow_new.html', dataset=dataset)
+
+@workflow_bp.route('/api/dataset/<int:dataset_id>/info', methods=['GET'])
+@login_required
+def get_dataset_info(dataset_id):
+    """Get dataset column information"""
+    user_id = session['user_id']
+    user_datasets = datasets.get(user_id, [])
+    
+    dataset = next((ds for ds in user_datasets if ds['id'] == dataset_id), None)
+    if not dataset:
+        return jsonify({"success": False, "message": "Dataset not found"}), 404
+    
+    try:
+        # Load dataset to get column info
+        file_path = dataset['file_path']
+        file_type = dataset['file_type']
+        
+        if file_type == 'csv':
+            df = pd.read_csv(file_path, nrows=5)  # Just read first few rows for column info
+        elif file_type in ['xlsx', 'xls']:
+            df = pd.read_excel(file_path, nrows=5)
+        else:
+            return jsonify({"success": False, "message": "Unsupported file type"}), 400
+        
+        # Get column information
+        columns = []
+        for col in df.columns:
+            col_type = 'numeric' if pd.api.types.is_numeric_dtype(df[col]) else 'categorical'
+            columns.append({
+                'name': col,
+                'type': col_type
+            })
+        
+        return jsonify({
+            "success": True,
+            "columns": columns
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting dataset info: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @workflow_bp.route('/api/<int:dataset_id>/create_pipeline', methods=['POST'])
 @login_required

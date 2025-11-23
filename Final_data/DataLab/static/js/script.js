@@ -177,14 +177,30 @@ function updateStatus(text, type) {
 }
 
 function displayResults(data) {
-    displayBestModel(data.best_model);
-    displayDatasetStats(data.dataset_analysis);
-    displayPerformanceChart(data.recommendations);
-    displayModelRecommendations(data.recommendations);
-    
-    const results = document.getElementById('results');
-    results.classList.remove('hidden');
-    results.classList.add('fade-in');
+    console.log('displayResults called with:', data);
+
+    if (!data || !data.recommendations || data.recommendations.length === 0) {
+        console.error('No recommendations to display');
+        showError('No model recommendations available. Please check your dataset.');
+        return;
+    }
+
+    try {
+        displayBestModel(data.best_model);
+        displayDatasetStats(data.dataset_analysis);
+        displayPerformanceChart(data.recommendations);
+        displayExplanations(data.explanations);
+        displayModelRecommendations(data.recommendations);
+
+        const results = document.getElementById('results');
+        results.classList.remove('hidden');
+        results.classList.add('fade-in');
+
+        console.log('Results displayed successfully');
+    } catch (error) {
+        console.error('Error displaying results:', error);
+        showError('Error displaying results: ' + error.message);
+    }
 }
 
 function displayBestModel(bestModel) {
@@ -226,6 +242,59 @@ function displayDatasetStats(analysis) {
             `).join('')}
         </div>
     `;
+}
+
+function displayExplanations(explanations) {
+    const explanationsContent = document.getElementById('explanationsContent');
+
+    if (!explanations || Object.keys(explanations).length === 0) {
+        console.log('No explanations available');
+        document.getElementById('explanationsSection').style.display = 'none';
+        return;
+    }
+
+    // Convert markdown-like formatting to HTML
+    function formatExplanation(text) {
+        if (!text) return '';
+
+        // Convert markdown headers
+        text = text.replace(/^### (.*$)/gim, '<h4>$1</h4>');
+        text = text.replace(/^## (.*$)/gim, '<h3>$1</h3>');
+        text = text.replace(/^# (.*$)/gim, '<h2>$1</h2>');
+
+        // Convert bold text
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Convert bullet points
+        text = text.replace(/^- (.*$)/gim, '<li>$1</li>');
+        text = text.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+        // Convert line breaks
+        text = text.replace(/\n\n/g, '</p><p>');
+        text = '<p>' + text + '</p>';
+
+        return text;
+    }
+
+    // Order of sections for display
+    const sectionOrder = ['summary', 'sampling', 'task_detection', 'best_model', 'cross_validation', 'hyperparameter_tuning'];
+
+    let htmlContent = '<div class="explanation-grid">';
+
+    sectionOrder.forEach(key => {
+        if (explanations[key]) {
+            htmlContent += `
+                <div class="explanation-card">
+                    <div class="explanation-content">
+                        ${formatExplanation(explanations[key])}
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    htmlContent += '</div>';
+    explanationsContent.innerHTML = htmlContent;
 }
 
 function displayPerformanceChart(recommendations) {
@@ -317,8 +386,8 @@ function displayPerformanceChart(recommendations) {
 function displayModelRecommendations(recommendations) {
     const container = document.getElementById('modelCards');
     
-    container.innerHTML = recommendations.slice(1).map((rec, index) => {
-        const rank = index + 2;
+    container.innerHTML = recommendations.map((rec, index) => {
+        const rank = index + 1;
         const modelIcons = {
             'Random Forest': 'fas fa-tree',
             'Gradient Boosting': 'fas fa-chart-line',
@@ -376,23 +445,27 @@ function displayModelRecommendations(recommendations) {
                             </div>
                         ` : ''}
                     </div>
-                    
-                    ${rec.gpt_analysis ? `
-                        <div class="gpt-analysis">
-                            <h5><i class="fas fa-robot"></i> GPT Analysis</h5>
-                            <p>${rec.gpt_analysis}</p>
-                        </div>
-                    ` : `
-                        <div class="no-gpt-notice">
-                            <p><i class="fas fa-info-circle"></i> Add OpenAI API key for AI-powered insights</p>
-                        </div>
-                    `}
-                    
+
                     <div class="justification">
-                        <h5><i class="fas fa-chart-bar"></i> Statistical Justification</h5>
+                        <h5><i class="fas fa-chart-bar"></i> Why This Model?</h5>
                         <p>${rec.justification}</p>
                     </div>
-                    
+
+                    <div class="model-explanation">
+                        <h5><i class="fas fa-info-circle"></i> Understanding This Result</h5>
+                        <p><strong>Performance:</strong> This model achieved a ${(rec.performance.mean_score * 100).toFixed(1)}% accuracy score through 5-fold cross-validation, meaning it was tested 5 times on different portions of your data.</p>
+                        <p><strong>Stability:</strong> The standard deviation of ±${(rec.performance.std_score * 100).toFixed(1)}% shows how consistent the model performs across different test sets. Lower values mean more predictable, reliable results.</p>
+                        <p><strong>Speed:</strong> Training completed in ${rec.performance.training_time.toFixed(2)} seconds. ${rec.performance.training_time < 1 ? 'This is very fast!' : rec.performance.training_time < 5 ? 'This is reasonably fast.' : 'This takes more time but may offer better accuracy.'}</p>
+                        <p><strong>Suitability Score (${rec.suitability_score.toFixed(1)}%):</strong> This score considers multiple factors:</p>
+                        <ul>
+                            <li>Model accuracy and performance (40%)</li>
+                            <li>Training and prediction speed (30%)</li>
+                            <li>Result consistency and stability (20%)</li>
+                            <li>Model complexity and interpretability (10%)</li>
+                        </ul>
+                        ${rank === 1 ? '<p style="color: var(--success-color); font-weight: 600;">🏆 This is the recommended model for your dataset based on the best overall balance of accuracy, speed, and reliability.</p>' : ''}
+                    </div>
+
                     <div class="model-actions">
                         <button class="action-btn tune-btn" onclick="openTuningModal('${rec.model}')" ${!rec.can_tune ? 'disabled' : ''}>
                             <i class="fas fa-sliders-h"></i>
@@ -410,6 +483,10 @@ function displayModelRecommendations(recommendations) {
 }
 
 async function openTuningModal(modelName) {
+    // Store original performance for comparison
+    const modelRec = currentData.recommendations.find(r => r.model === modelName);
+    window.originalPerformance = modelRec ? modelRec.performance : null;
+    
     const modal = document.getElementById('tuningModal');
     const content = document.getElementById('tuningContent');
     
@@ -417,12 +494,33 @@ async function openTuningModal(modelName) {
         <div class="tuning-interface">
             <div class="tuning-header">
                 <h4>Hyperparameter Tuning for ${modelName}</h4>
-                <p>Running GridSearchCV optimization...</p>
+                <p>Select tuning depth based on your time budget</p>
             </div>
             
-            <div class="tuning-progress">
+            <div class="tuning-options">
+                <div class="tuning-option" onclick="startTuning('${modelName}', 'normal')">
+                    <div class="option-icon"><i class="fas fa-bolt"></i></div>
+                    <h5>Normal Tuning</h5>
+                    <p class="option-time">~10-30 seconds</p>
+                    <p class="option-desc">Quick optimization with essential parameters</p>
+                </div>
+                <div class="tuning-option" onclick="startTuning('${modelName}', 'semi_deep')">
+                    <div class="option-icon"><i class="fas fa-chart-line"></i></div>
+                    <h5>Semi-Deep Tuning</h5>
+                    <p class="option-time">~30-120 seconds</p>
+                    <p class="option-desc">Moderate comprehensive search with many combinations</p>
+                </div>
+                <div class="tuning-option" onclick="startTuning('${modelName}', 'deep')">
+                    <div class="option-icon"><i class="fas fa-brain"></i></div>
+                    <h5>Deep Tuning</h5>
+                    <p class="option-time">~2-5 minutes</p>
+                    <p class="option-desc">Highly comprehensive search for optimal results</p>
+                </div>
+            </div>
+            
+            <div class="tuning-progress" id="tuningProgress" style="display: none;">
                 <div class="progress-bar">
-                    <div class="progress-fill" id="tuningProgress" style="width: 0%"></div>
+                    <div class="progress-fill" id="tuningProgressBar" style="width: 0%"></div>
                 </div>
                 <p id="tuningStatus">Starting hyperparameter optimization...</p>
             </div>
@@ -449,13 +547,16 @@ async function openTuningModal(modelName) {
     `;
     
     modal.classList.remove('hidden');
-    
-    // Start real tuning
-    await performRealTuning(modelName);
 }
 
-async function performRealTuning(modelName) {
-    const progressBar = document.getElementById('tuningProgress');
+function startTuning(modelName, tuningLevel) {
+    document.querySelector('.tuning-options').style.display = 'none';
+    document.getElementById('tuningProgress').style.display = 'block';
+    performRealTuning(modelName, tuningLevel);
+}
+
+async function performRealTuning(modelName, tuningLevel) {
+    const progressBar = document.getElementById('tuningProgressBar');
     const statusText = document.getElementById('tuningStatus');
     const resultsDiv = document.getElementById('tuningResults');
     
@@ -485,7 +586,9 @@ async function performRealTuning(modelName) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model_name: modelName
+                model_name: modelName,
+                tuning_level: tuningLevel,
+                original_performance: window.originalPerformance
             })
         });
         
@@ -499,7 +602,8 @@ async function performRealTuning(modelName) {
         }
         
         window.currentTuningModel = modelName;
-        showRealTuningResults(data.tuning_results, data.updated_performance);
+        window.currentTuningLevel = tuningLevel;
+        showRealTuningResults(data.tuning_results, data.updated_performance, data.improved, data.improvement_pct, data.original_score, data.new_score, tuningLevel);
         
     } catch (error) {
         statusText.textContent = 'Error: ' + error.message;
@@ -507,7 +611,7 @@ async function performRealTuning(modelName) {
     }
 }
 
-function showRealTuningResults(results, updatedPerformance) {
+function showRealTuningResults(results, updatedPerformance, improved, improvementPct, originalScore, newScore, tuningLevel) {
     const resultsDiv = document.getElementById('tuningResults');
     const bestScore = document.getElementById('bestScore');
     const combinations = document.getElementById('combinations');
@@ -518,7 +622,61 @@ function showRealTuningResults(results, updatedPerformance) {
     combinations.textContent = results.total_combinations;
     tuningTime.textContent = results.tuning_time.toFixed(1) + 's';
     
-    bestParams.innerHTML = `
+    // Smart suggestions based on tuning level and results
+    let suggestionHtml = '';
+    if (improved) {
+        if (tuningLevel === 'normal') {
+            suggestionHtml = `<div class="improvement-success">
+                <i class="fas fa-check-circle"></i>
+                <strong>Performance Improved!</strong>
+                <p>Score increased from ${(originalScore * 100).toFixed(2)}% to ${(newScore * 100).toFixed(2)}%</p>
+                <p class="improvement-pct">+${improvementPct.toFixed(2)}% improvement</p>
+                <p class="suggestion">Try Semi-Deep Tuning for potentially better results!</p>
+            </div>`;
+        } else if (tuningLevel === 'semi_deep') {
+            suggestionHtml = `<div class="improvement-success">
+                <i class="fas fa-check-circle"></i>
+                <strong>Performance Improved!</strong>
+                <p>Score increased from ${(originalScore * 100).toFixed(2)}% to ${(newScore * 100).toFixed(2)}%</p>
+                <p class="improvement-pct">+${improvementPct.toFixed(2)}% improvement</p>
+                <p class="suggestion">Consider Deep Tuning for maximum optimization!</p>
+            </div>`;
+        } else {
+            suggestionHtml = `<div class="improvement-success">
+                <i class="fas fa-check-circle"></i>
+                <strong>Performance Improved!</strong>
+                <p>Score increased from ${(originalScore * 100).toFixed(2)}% to ${(newScore * 100).toFixed(2)}%</p>
+                <p class="improvement-pct">+${improvementPct.toFixed(2)}% improvement</p>
+                <p class="suggestion">Model fully optimized with Deep Tuning!</p>
+            </div>`;
+        }
+    } else {
+        if (tuningLevel === 'normal') {
+            suggestionHtml = `<div class="improvement-warning">
+                <i class="fas fa-info-circle"></i>
+                <strong>No Improvement</strong>
+                <p>Normal tuning did not improve performance. Original score: ${(originalScore * 100).toFixed(2)}%</p>
+                <p class="suggestion">Recommendation: Try Semi-Deep Tuning for more thorough search.</p>
+            </div>`;
+        } else if (tuningLevel === 'semi_deep') {
+            suggestionHtml = `<div class="improvement-warning">
+                <i class="fas fa-info-circle"></i>
+                <strong>No Improvement</strong>
+                <p>Semi-Deep tuning did not improve performance. Original score: ${(originalScore * 100).toFixed(2)}%</p>
+                <p class="suggestion">Recommendation: Try Deep Tuning for comprehensive optimization.</p>
+            </div>`;
+        } else {
+            suggestionHtml = `<div class="improvement-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>No Improvement</strong>
+                <p>Deep tuning did not improve performance. Original score: ${(originalScore * 100).toFixed(2)}%</p>
+                <p class="suggestion">Model is already well-optimized. Consider feature engineering or trying different models.</p>
+            </div>`;
+        }
+    }
+    const improvementHtml = suggestionHtml;
+    
+    bestParams.innerHTML = improvementHtml + `
         <h6>Optimal Parameters:</h6>
         <div class="param-grid">
             ${Object.entries(results.best_params).map(([key, value]) => `
@@ -530,19 +688,31 @@ function showRealTuningResults(results, updatedPerformance) {
     `;
     
     resultsDiv.style.display = 'block';
-    window.currentTuningResults = { results, updatedPerformance };
+    window.currentTuningResults = { results, updatedPerformance, improved };
     
-    // Automatically update model metrics
-    setTimeout(() => {
-        applyTuningAutomatically(window.currentTuningModel, updatedPerformance);
-        closeTuningModal();
-    }, 2000);
+    // Show smart popup notification
+    if (improved) {
+        const levelName = tuningLevel === 'normal' ? 'Normal' : tuningLevel === 'semi_deep' ? 'Semi-Deep' : 'Deep';
+        showNotification(`${window.currentTuningModel} improved by ${improvementPct.toFixed(1)}%! ${levelName} tuning successful.`, 'success');
+    } else {
+        if (tuningLevel === 'normal') {
+            showNotification(`${window.currentTuningModel}: No improvement with Normal tuning. Try Semi-Deep tuning.`, 'warning');
+        } else if (tuningLevel === 'semi_deep') {
+            showNotification(`${window.currentTuningModel}: No improvement with Semi-Deep tuning. Try Deep tuning.`, 'warning');
+        } else {
+            showNotification(`${window.currentTuningModel}: Model already optimized. No deep tuning needed.`, 'info');
+        }
+    }
+    
+    // Don't auto-close modal - let user close it manually
+    // Automatically update model metrics in background
+    applyTuningAutomatically(window.currentTuningModel, updatedPerformance, improved);
 }
 
-function applyTuningAutomatically(modelName, updatedPerformance) {
+function applyTuningAutomatically(modelName, updatedPerformance, improved) {
     const modelCard = document.querySelector(`[data-model="${modelName}"]`);
     if (modelCard && updatedPerformance) {
-        // Update all metrics
+        // Update all metrics in the card
         const metrics = modelCard.querySelectorAll('.metric');
         
         // Update CV Score
@@ -565,14 +735,64 @@ function applyTuningAutomatically(modelName, updatedPerformance) {
             timeElement.textContent = updatedPerformance.training_time.toFixed(2) + 's';
         }
         
-        // Add tuned indicator
-        const modelHeader = modelCard.querySelector('.model-details h4');
-        if (!modelHeader.textContent.includes('🔧')) {
-            modelHeader.innerHTML += ' <span style="color: var(--success-color);">🔧 Tuned</span>';
+        // Add tuned indicator ONLY if improved
+        if (improved) {
+            const modelHeader = modelCard.querySelector('.model-details h4');
+            if (!modelHeader.textContent.includes('Tuned')) {
+                modelHeader.innerHTML += ' <span style="color: var(--success-color); font-size: 0.8em;">✓ Tuned</span>';
+            }
         }
         
-        showNotification(`${modelName} metrics updated with optimized parameters!`, 'success');
+        // Update currentData with new performance
+        if (currentData && currentData.recommendations) {
+            const modelIndex = currentData.recommendations.findIndex(r => r.model === modelName);
+            if (modelIndex !== -1) {
+                currentData.recommendations[modelIndex].performance = updatedPerformance;
+                
+                // Recalculate suitability score
+                const newSuitability = calculateSuitabilityScore(modelName, updatedPerformance);
+                currentData.recommendations[modelIndex].suitability_score = newSuitability;
+                
+                // Re-sort recommendations
+                currentData.recommendations.sort((a, b) => b.suitability_score - a.suitability_score);
+                
+                // Update best model if changed
+                const newBestModel = currentData.recommendations[0];
+                currentData.best_model = {
+                    name: newBestModel.model,
+                    score: newBestModel.suitability_score,
+                    performance: newBestModel.performance,
+                    why_best: `Achieved highest suitability score of ${newBestModel.suitability_score.toFixed(1)}% with ${newBestModel.performance.mean_score.toFixed(3)} CV score and ${newBestModel.performance.training_time.toFixed(2)}s training time.`
+                };
+                
+                // Update best model display
+                displayBestModel(currentData.best_model);
+                
+                // Update performance chart
+                displayPerformanceChart(currentData.recommendations);
+            }
+        }
+        
+        const message = improved ? 
+            `${modelName} metrics updated! Rankings refreshed with improved performance.` :
+            `${modelName} metrics updated. No performance improvement from tuning.`;
+        showNotification(message, improved ? 'success' : 'info');
     }
+}
+
+function calculateSuitabilityScore(modelName, performance) {
+    // Simple suitability calculation based on performance
+    let baseScore = performance.mean_score * 100;
+    
+    // Adjust for stability
+    if (performance.std_score < 0.05) baseScore += 5;
+    else if (performance.std_score > 0.15) baseScore -= 5;
+    
+    // Adjust for training time
+    if (performance.training_time < 1) baseScore += 3;
+    else if (performance.training_time > 10) baseScore -= 3;
+    
+    return Math.max(0, Math.min(100, baseScore));
 }
 
 function closeTuningModal() {
@@ -611,57 +831,27 @@ async function finalizeModel(modelName) {
             throw new Error(data.error);
         }
         
-        // Download notebook
-        const blob = new Blob([JSON.stringify(data.notebook_content, null, 2)], {
-            type: 'application/json'
-        });
-        const url = URL.createObjectURL(blob);
+        // Download the notebook file
+        const blob = new Blob([data.notebook_content], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = data.filename;
         document.body.appendChild(a);
         a.click();
+        window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
         
-        // Open JupyterLite in new tab with better handling
-        try {
+        // Show success message with instructions
+        showNotification(`${modelName} notebook downloaded! Open JupyterLite and upload the file to start coding.`, 'success');
+        
+        // Open JupyterLite in new tab after a short delay
+        setTimeout(() => {
             const jupyterWindow = window.open('/ml/jupyterlite', '_blank', 'width=1200,height=800,resizable=yes,scrollbars=yes');
-            
             if (jupyterWindow) {
-                // Focus the new window
                 jupyterWindow.focus();
-                showNotification(`${modelName} notebook downloaded! JupyterLite opened - upload the notebook to start coding.`, 'success');
-            } else {
-                // Popup was blocked
-                showNotification(`${modelName} notebook downloaded! Please allow popups and click here to open JupyterLite.`, 'warning');
-                
-                // Add a click handler to try again
-                setTimeout(() => {
-                    const notification = document.querySelector('.notification:last-child');
-                    if (notification) {
-                        notification.style.cursor = 'pointer';
-                        notification.onclick = () => {
-                            window.open('/ml/jupyterlite', '_blank');
-                            notification.remove();
-                        };
-                    }
-                }, 100);
             }
-        } catch (error) {
-            console.error('Error opening JupyterLite:', error);
-            showNotification(`${modelName} notebook downloaded! Click "Python Notebook" in the sidebar to open JupyterLite.`, 'info');
-        }
-        
-        // Store notebook info for easy access
-        if (typeof(Storage) !== "undefined") {
-            localStorage.setItem('datalab_latest_notebook', JSON.stringify({
-                filename: data.filename,
-                model_name: modelName,
-                created_at: new Date().toISOString(),
-                content: data.notebook_content
-            }));
-        }
+        }, 500);
         
     } catch (error) {
         showNotification('Error exporting notebook: ' + error.message, 'error');
@@ -673,8 +863,11 @@ function showNotification(message, type) {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
         <span>${message}</span>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
     `;
     
     // Add styles
@@ -682,9 +875,10 @@ function showNotification(message, type) {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: ${type === 'success' ? 'var(--success-color)' : type === 'error' ? 'var(--danger-color)' : 'var(--primary-color)'};
+        background: ${type === 'success' ? 'var(--success-color)' : type === 'error' ? 'var(--danger-color)' : type === 'warning' ? '#f59e0b' : 'var(--primary-color)'};
         color: white;
         padding: 1rem 1.5rem;
+        padding-right: 3rem;
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-lg);
         z-index: 3000;
@@ -692,17 +886,10 @@ function showNotification(message, type) {
         align-items: center;
         gap: 0.5rem;
         animation: slideInRight 0.3s ease-out;
+        max-width: 400px;
     `;
     
     document.body.appendChild(notification);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.3s ease-in';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
 }
 
 // Add CSS animations for notifications
@@ -783,6 +970,132 @@ style.textContent = `
         background: linear-gradient(135deg, var(--primary-dark), #1e40af);
         transform: translateY(-1px);
         box-shadow: var(--shadow-md);
+    }
+    
+    .improvement-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .improvement-success i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .improvement-success strong {
+        display: block;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .improvement-pct {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-top: 0.5rem;
+    }
+    
+    .improvement-warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .improvement-warning i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .improvement-warning strong {
+        display: block;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .tuning-options {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .tuning-option {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border: 2px solid #dee2e6;
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .tuning-option:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        border-color: var(--primary-color);
+    }
+    
+    .option-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .tuning-option h5 {
+        margin: 0.5rem 0;
+        color: var(--text-primary);
+    }
+    
+    .option-time {
+        color: var(--success-color);
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    
+    .option-desc {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+    
+    .suggestion {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.2);
+        border-radius: var(--radius-sm);
+        font-weight: bold;
+    }
+    
+    .notification-close {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+    }
+    
+    .notification-close:hover {
+        background: rgba(255,255,255,0.3);
+    }
+    
+    .notification {
+        position: relative;
     }
 `;
 document.head.appendChild(style);

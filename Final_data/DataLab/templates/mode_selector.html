@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Mode - DataLab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .mode-selector-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .mode-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .mode-header h1 {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .mode-header p {
+            color: #6c757d;
+            font-size: 18px;
+        }
+        .mode-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            height: 100%;
+        }
+        .mode-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-color: #667eea;
+        }
+        .mode-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .mode-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .mode-description {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .mode-features {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .mode-features li {
+            color: #495057;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .mode-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mode-selector-container">
+        <div class="mode-header">
+            <h1><i class="fas fa-rocket"></i> Welcome to DataLab</h1>
+            <p>Choose your workflow mode to get started</p>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Open Mode -->
+            <div class="col-md-6">
+                <div class="mode-card" onclick="selectMode('open')">
+                    <div class="mode-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <div class="mode-title">Open Mode</div>
+                    <div class="mode-description">
+                        Full control over each module. Build your custom workflow step by step.
+                    </div>
+                    <div class="mode-badge">FLEXIBLE</div>
+                    <ul class="mode-features">
+                        <li><i class="fas fa-check text-success"></i> Access all modules individually</li>
+                        <li><i class="fas fa-check text-success"></i> Data cleaning with AI analysis</li>
+                        <li><i class="fas fa-check text-success"></i> Feature engineering</li>
+                        <li><i class="fas fa-check text-success"></i> ML model selection & tuning</li>
+                        <li><i class="fas fa-check text-success"></i> Custom visualizations</li>
+                        <li><i class="fas fa-check text-success"></i> Manual control at each step</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- End-to-End Mode -->
+            <div class="col-md-6">
+                <div class="mode-card" onclick="selectMode('e2e')">
+                    <div class="mode-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="mode-title">End-to-End Mode</div>
+                    <div class="mode-description">
+                        Fully automated PyCaret ML pipeline. One-click solution from data to model.
+                    </div>
+                    <div class="mode-badge">AUTOMATED</div>
+                    <ul class="mode-features">
+                        <li><i class="fas fa-check text-success"></i> Automated PyCaret pipeline</li>
+                        <li><i class="fas fa-check text-success"></i> Auto data preprocessing</li>
+                        <li><i class="fas fa-check text-success"></i> Model comparison (15+ models)</li>
+                        <li><i class="fas fa-check text-success"></i> Hyperparameter tuning</li>
+                        <li><i class="fas fa-check text-success"></i> Model evaluation & metrics</li>
+                        <li><i class="fas fa-check text-success"></i> One-click deployment</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted"><small>You can switch modes anytime from the dashboard</small></p>
+        </div>
+    </div>
+
+    <script>
+        function selectMode(mode) {
+            if (mode === 'open') {
+                window.location.href = '/workflow';
+            } else if (mode === 'e2e') {
+                window.location.href = '/pycaret-pipeline';
+            }
+        }
+    </script>
+</body>
+</html>

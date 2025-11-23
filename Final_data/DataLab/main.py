@@ -5,10 +5,14 @@ import logging
 from datetime import datetime
 from functools import wraps
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 import numpy as np
 import firebase_admin
-from firebase_admin import credentials, auth
+from firebase_admin import credentials, auth, firestore
 from flask_cors import CORS  # Add this import
 
 # Configure logging first
@@ -49,6 +53,7 @@ from flask import (
     flash, session, jsonify, make_response
 )
 from werkzeug.utils import secure_filename
+from quality_scorer import calculate_robust_quality_score
 
 # Application Configuration
 class Config:
@@ -100,6 +105,8 @@ def initialize_firebase():
 # Create Flask Application
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config['TEMPLATES_AUTO_RELOAD'] = True  # Force template reload
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching
 CORS(app)  # Enable CORS for development
 
 # Ensure uploads directory exists
@@ -109,9 +116,40 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 firebase_enabled = initialize_firebase()
 app.config['FIREBASE_ENABLED'] = firebase_enabled
 
-# In-memory storage for datasets
+# Dataset storage with JSON persistence
 datasets = {}
 next_dataset_id = 1
+DATASETS_METADATA_FILE = os.path.join(app.config['UPLOAD_FOLDER'], 'datasets_metadata.json')
+
+def save_datasets_metadata():
+    """Save datasets metadata to JSON file for persistence"""
+    try:
+        with open(DATASETS_METADATA_FILE, 'w') as f:
+            json.dump({'datasets': datasets, 'next_id': next_dataset_id}, f)
+        logger.info("Datasets metadata saved successfully")
+    except Exception as e:
+        logger.error(f"Error saving datasets metadata: {e}")
+
+def load_datasets_metadata():
+    """Load datasets metadata from JSON file"""
+    global datasets, next_dataset_id
+    try:
+        if os.path.exists(DATASETS_METADATA_FILE):
+            with open(DATASETS_METADATA_FILE, 'r') as f:
+                data = json.load(f)
+                datasets = data.get('datasets', {})
+                next_dataset_id = data.get('next_id', 1)
+            logger.info(f"Loaded datasets metadata: {len(datasets)} users")
+        else:
+            logger.info("No existing datasets metadata found, starting fresh")
+    except Exception as e:
+        logger.error(f"Error loading datasets metadata: {e}")
+        datasets = {}
+        next_dataset_id = 1
+
+# Load existing datasets on startup
+load_datasets_metadata()
+logger.info("Dataset storage initialized with persistence")
 
 # Import and register ML routes
 try:
@@ -151,11 +189,22 @@ except Exception as e:
 
 # Import and register Module 6 (Feature Engineering) routes
 try:
-    from routes.module6_routes import module6_bp
+    from routes.module6_routes import module6_bp, set_datasets_reference
     app.register_blueprint(module6_bp)
+    set_datasets_reference(datasets)
     logger.info("Module 6 (Feature Engineering) routes registered successfully")
 except ImportError as e:
     logger.warning(f"Could not import Module 6 routes: {e}")
+except Exception as e:
+    logger.error(f"Error registering Module 6 routes: {e}")
+
+# Import and register Community routes
+try:
+    from routes.community_routes import community_bp
+    app.register_blueprint(community_bp)
+    logger.info("Community routes registered successfully")
+except ImportError as e:
+    logger.warning(f"Could not import Community routes: {e}")
 except Exception as e:
     logger.error(f"Error registering Module 6 routes: {e}")
 
@@ -169,6 +218,48 @@ except ImportError as e:
     logger.warning(f"Could not import Workflow Management routes: {e}")
 except Exception as e:
     logger.error(f"Error registering Workflow Management routes: {e}")
+
+# Import and register Unified Workflow routes (uses existing modules)
+try:
+    from routes.unified_workflow_routes import unified_workflow_bp
+    app.register_blueprint(unified_workflow_bp)
+    logger.info("Unified Workflow routes registered successfully")
+except ImportError as e:
+    logger.warning(f"Could not import Unified Workflow routes: {e}")
+except Exception as e:
+    logger.error(f"Error registering Unified Workflow routes: {e}")
+
+# Import and register PyCaret Pipeline routes
+try:
+    from routes.pycaret_pipeline_routes import pycaret_pipeline_bp, set_datasets_reference as set_pycaret_datasets_reference
+    app.register_blueprint(pycaret_pipeline_bp)
+    set_pycaret_datasets_reference(datasets)
+    logger.info("PyCaret Pipeline routes registered successfully")
+except ImportError as e:
+    logger.warning(f"Could not import PyCaret Pipeline routes: {e}")
+except Exception as e:
+    logger.error(f"Error registering PyCaret Pipeline routes: {e}")
+
+# Import and register Mode Selector routes
+try:
+    from routes.mode_selector_routes import mode_selector_bp
+    app.register_blueprint(mode_selector_bp)
+    logger.info("Mode Selector routes registered successfully")
+except ImportError as e:
+    logger.warning(f"Could not import Mode Selector routes: {e}")
+except Exception as e:
+    logger.error(f"Error registering Mode Selector routes: {e}")
+
+# Import and register Notebook Pipeline routes
+try:
+    from routes.notebook_pipeline_routes import notebook_pipeline_bp, set_datasets_reference as set_notebook_datasets_reference
+    app.register_blueprint(notebook_pipeline_bp)
+    set_notebook_datasets_reference(datasets)
+    logger.info("Notebook Pipeline routes registered successfully")
+except ImportError as e:
+    logger.warning(f"Could not import Notebook Pipeline routes: {e}")
+except Exception as e:
+    logger.error(f"Error registering Notebook Pipeline routes: {e}")
 
 
 # Helper Functions
@@ -203,6 +294,83 @@ def verify_firebase_token(id_token):
     except Exception as e:
         logger.error(f"Token verification error: {e}")
         return None
+
+
+def initialize_user_in_community(user_id, username, email):
+    """
+    Initialize a new user in the community Firestore collections.
+    This is called automatically when a user signs up or logs in for the first time.
+
+    Args:
+        user_id (str): User's unique ID
+        username (str): User's display name
+        email (str): User's email address
+    """
+    try:
+        db = firestore.client()
+
+        # Add user to 'users' collection with profile data
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            user_data = {
+                'id': user_id,
+                'username': username,
+                'email': email,
+                'profile_image': '/static/img/default-avatar.png',
+                'created_at': datetime.now().isoformat(),
+                'bio': '',
+                'joined_at': firestore.SERVER_TIMESTAMP
+            }
+            user_ref.set(user_data)
+            logger.info(f"Created user profile in Firestore for: {username} ({user_id})")
+
+        # Initialize or update user presence
+        update_user_presence(user_id, username, '/static/img/default-avatar.png')
+
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing user in community: {e}")
+        return False
+
+
+def update_user_presence(user_id, username, profile_image=None):
+    """
+    Update user's online presence in Firestore.
+    This marks the user as active and updates their last active timestamp.
+
+    Args:
+        user_id (str): User's unique ID
+        username (str): User's display name
+        profile_image (str): URL to user's profile image
+    """
+    try:
+        db = firestore.client()
+
+        if profile_image is None:
+            # Get profile image from user's profile if not provided
+            user_ref = db.collection('users').document(user_id)
+            user_doc = user_ref.get()
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                profile_image = user_data.get('profile_image', '/static/img/default-avatar.png')
+            else:
+                profile_image = '/static/img/default-avatar.png'
+
+        presence_ref = db.collection('user_presence').document(user_id)
+        presence_ref.set({
+            'username': username,
+            'profile_image': profile_image,
+            'last_active': firestore.SERVER_TIMESTAMP,
+            'online': True
+        }, merge=True)
+
+        logger.info(f"Updated presence for user: {username} ({user_id})")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating user presence: {e}")
+        return False
 
 
 # Authentication Middleware
@@ -242,6 +410,19 @@ def login_required(f):
                 session['user_id'] = user_info['uid']
                 session['email'] = user_info['email']
                 session['username'] = user_info.get('display_name') or user_info['email'].split('@')[0]
+
+                # Initialize user in community (if not already initialized)
+                initialize_user_in_community(
+                    user_info['uid'],
+                    session['username'],
+                    user_info['email']
+                )
+
+            # Update user presence on every authenticated request
+            update_user_presence(
+                user_info['uid'],
+                session.get('username', user_info.get('display_name') or user_info['email'].split('@')[0])
+            )
 
             logger.info(f"✅ User authenticated: {user_info['email']}")
             return f(*args, **kwargs)
@@ -341,6 +522,18 @@ def dashboard():
     )
 
 
+@app.route('/community')
+@login_required
+def community():
+    """Community page"""
+    user = {
+        'id': session.get('user_id', 'anonymous'),
+        'username': session.get('username', session.get('email', 'User').split('@')[0]),
+        'email': session.get('email', 'user@example.com')
+    }
+    return render_template('community.html', user=user)
+
+
 @app.route('/upload_dataset', methods=['POST'])
 @login_required
 def upload_dataset():
@@ -400,8 +593,11 @@ def upload_dataset():
 
             # Add to user's datasets
             datasets[user_id].append(new_dataset)
+            
+            # Save metadata to disk for persistence
+            save_datasets_metadata()
 
-            # Return success with dataset info
+            # Return success with dataset info including quality score
             return jsonify({
                 "success": True,
                 "message": "File uploaded successfully",
@@ -411,7 +607,9 @@ def upload_dataset():
                     "name": new_dataset["name"],
                     "file_type": new_dataset["file_type"],
                     "rows": new_dataset["rows"],
-                    "columns": new_dataset["columns"]
+                    "columns": new_dataset["columns"],
+                    "quality_score": new_dataset["quality_score"],
+                    "quality_components": new_dataset.get("quality_components", {})
                 }
             })
 
@@ -429,6 +627,180 @@ def get_datasets():
     user_datasets = datasets.get(user_id, [])
 
     return jsonify(user_datasets)
+
+
+def generate_cleaning_notebook(dataset_name, report, original_quality, new_quality):
+    """Generate Jupyter notebook with cleaning steps"""
+    cells = []
+    
+    # Title
+    cells.append({
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [f"# Data Cleaning Report: {dataset_name}\n", "\n", f"**Quality Improvement:** {original_quality:.1f}% → {new_quality:.1f}% (+{new_quality-original_quality:.1f}%)\n"]
+    })
+    
+    # Imports
+    cells.append({
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": ["import pandas as pd\n", "import numpy as np\n", "from sklearn.preprocessing import StandardScaler\n"]
+    })
+    
+    # Load data
+    cells.append({
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [f"# Load dataset\n", f"df = pd.read_csv('{dataset_name}')\n", "print(f'Shape: {df.shape}')\n"]
+    })
+    
+    # Transformations
+    for i, trans in enumerate(report['transformations'], 1):
+        cells.append({
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [f"## Step {i}: {trans['operation']}\n", f"**Reason:** {trans['reason']}\n"]
+        })
+        
+        code_lines = [f"# {trans['operation']}\n"]
+        if 'missing' in trans['operation'].lower():
+            code_lines.append(f"df['{trans.get('column', 'column')}'].fillna(df['{trans.get('column', 'column')}'].{trans.get('strategy', 'mean')}(), inplace=True)\n")
+        elif 'duplicate' in trans['operation'].lower():
+            code_lines.append("df.drop_duplicates(inplace=True)\n")
+        elif 'outlier' in trans['operation'].lower():
+            code_lines.append(f"Q1 = df['{trans.get('column', 'column')}'].quantile(0.25)\n")
+            code_lines.append(f"Q3 = df['{trans.get('column', 'column')}'].quantile(0.75)\n")
+            code_lines.append("IQR = Q3 - Q1\n")
+            code_lines.append(f"df['{trans.get('column', 'column')}'] = df['{trans.get('column', 'column')}'].clip(Q1-1.5*IQR, Q3+1.5*IQR)\n")
+        elif 'scale' in trans['operation'].lower():
+            code_lines.append(f"scaler = StandardScaler()\n")
+            code_lines.append(f"df[['{trans.get('column', 'column')}']] = scaler.fit_transform(df[['{trans.get('column', 'column')}']])\n")
+        
+        cells.append({
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": code_lines
+        })
+    
+    # Summary
+    cells.append({
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["## Summary\n", f"- **Transformations Applied:** {len(report['transformations'])}\n", f"- **Quality Score:** {new_quality:.1f}%\n"]
+    })
+    
+    return {
+        "cells": cells,
+        "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}},
+        "nbformat": 4,
+        "nbformat_minor": 4
+    }
+
+@app.route('/api/clean_dataset/<int:dataset_id>', methods=['POST'])
+@login_required
+def clean_dataset(dataset_id):
+    """INTELLIGENT AI-POWERED PREPROCESSING - Complete Transparency"""
+    user_id = session['user_id']
+    user_datasets = datasets.get(user_id, [])
+    dataset = next((ds for ds in user_datasets if ds['id'] == dataset_id), None)
+
+    if not dataset:
+        return jsonify({'success': False, 'message': 'Dataset not found'}), 404
+
+    try:
+        from intelligent_preprocessor import IntelligentPreprocessor
+        
+        file_path = dataset['file_path']
+        file_type = dataset['file_type']
+
+        if file_type not in ['csv', 'xlsx', 'xls']:
+            return jsonify({'success': False, 'message': 'Only CSV/Excel supported'}), 400
+
+        df = pd.read_csv(file_path) if file_type == 'csv' else pd.read_excel(file_path)
+        original_quality = dataset.get('quality_score', 0)
+        
+        # Step 1: AI-Powered Analysis
+        preprocessor = IntelligentPreprocessor(df)
+        analysis = preprocessor.analyze_with_ai()
+        
+        # If no issues, return early
+        if not analysis['issues_detected']:
+            return jsonify({
+                'success': True,
+                'message': 'Dataset is already clean!',
+                'analysis': analysis,
+                'transformations': [],
+                'ai_insights': {'overall': 'No data quality issues detected. Dataset is in excellent condition.'},
+                'quality_improvement': {
+                    'original': round(original_quality, 1),
+                    'new': round(original_quality, 1),
+                    'improvement': 0
+                }
+            })
+        
+        # Step 2: Apply Intelligent Preprocessing
+        cleaned_df = preprocessor.apply_intelligent_preprocessing()
+        
+        # Step 3: Get Comprehensive Report
+        report = preprocessor.get_comprehensive_report()
+        
+        # Save cleaned data
+        if file_type == 'csv':
+            cleaned_df.to_csv(file_path, index=False)
+        else:
+            cleaned_df.to_excel(file_path, index=False)
+        
+        # Recalculate quality
+        new_analysis = analyze_file(file_path, file_type)
+        new_quality_score = new_analysis.get('quality_score', 0)
+        
+        # Update dataset
+        dataset['rows'] = len(cleaned_df)
+        dataset['columns'] = len(cleaned_df.columns)
+        dataset['quality_score'] = new_quality_score
+        dataset['quality_components'] = new_analysis.get('quality_components', {})
+        dataset['cleaned'] = True
+        dataset['cleaned_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        for i, ds in enumerate(user_datasets):
+            if ds['id'] == dataset_id:
+                user_datasets[i] = dataset
+                break
+        datasets[user_id] = user_datasets
+        
+        # Save metadata to disk for persistence
+        save_datasets_metadata()
+        
+        # Generate notebook
+        notebook_content = generate_cleaning_notebook(dataset['name'], report, original_quality, new_quality_score)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Intelligent preprocessing completed',
+            'analysis': report['analysis'],
+            'transformations': report['transformations'],
+            'ai_insights': report['ai_insights'],
+            'summary': report['summary'],
+            'quality_improvement': {
+                'original': round(original_quality, 1),
+                'new': round(new_quality_score, 1),
+                'improvement': round(new_quality_score - original_quality, 1)
+            },
+            'dataset': dataset,
+            'notebook': notebook_content
+        })
+
+    except Exception as e:
+        logger.error(f"Error in intelligent preprocessing: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
 @app.route('/data_preview/<int:dataset_id>')
@@ -542,7 +914,7 @@ def data_quality(dataset_id):
                 'duplicate_rows': int(duplicate_rows),
                 'data_types': dtype_counts,
                 'outliers': outliers_info,
-                'quality_score': dataset['quality_score']
+                'quality_score': dataset.get('quality_score', 0)
             }
 
         return render_template(
@@ -582,6 +954,9 @@ def delete_dataset(dataset_id):
 
         # Remove dataset from list
         del datasets[user_id][dataset_index]
+        
+        # Save metadata to disk for persistence
+        save_datasets_metadata()
 
         return jsonify({"success": True, "message": "Dataset deleted successfully"})
 
@@ -930,7 +1305,7 @@ def internal_server_error(e):
 # Utility function for file analysis
 def analyze_file(file_path, file_type):
     """
-    Analyze uploaded file and return basic metrics with detailed quality scoring
+    Analyze uploaded file and return comprehensive quality metrics
 
     Args:
         file_path (str): Path to the uploaded file
@@ -950,77 +1325,58 @@ def analyze_file(file_path, file_type):
             data['rows'] = len(df)
             data['columns'] = len(df.columns)
 
-            # Calculate quality metrics
-
-            # 1. Missing values (100% weight of their percentage)
-            missing_values = df.isnull().sum().sum()
-            total_values = data['rows'] * data['columns']
-            missing_percentage = (missing_values / total_values) * 100 if total_values > 0 else 0
-            missing_penalty = missing_percentage  # Full weight (100%)
-            data['missing_values'] = int(missing_values)
-            data['missing_percentage'] = round(missing_percentage, 2)
-
-            # 2. Duplicate rows (50% weight of their percentage)
-            duplicate_rows = df.duplicated().sum()
-            duplicate_percentage = (duplicate_rows / data['rows']) * 100 if data['rows'] > 0 else 0
-            duplicate_penalty = duplicate_percentage * 0.5  # 50% weight
-            data['duplicate_rows'] = int(duplicate_rows)
-            data['duplicate_percentage'] = round(duplicate_percentage, 2)
-
-            # 3. Outliers in numerical columns (25% weight of their percentage)
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            outliers_count = 0
-            outliers_info = {}
-
-            for col in numeric_cols:
-                if len(df[col].dropna()) > 0:
-                    Q1 = df[col].quantile(0.25)
-                    Q3 = df[col].quantile(0.75)
-                    IQR = Q3 - Q1
-                    outlier_step = 1.5 * IQR
-                    outliers_in_col = ((df[col] < (Q1 - outlier_step)) | (df[col] > (Q3 + outlier_step))).sum()
-                    outliers_count += outliers_in_col
-                    outliers_info[col] = int(outliers_in_col)
-
-            # Safety check to avoid division by zero
-            if len(numeric_cols) > 0 and data['rows'] > 0:
-                outlier_percentage = (outliers_count / (len(numeric_cols) * data['rows'])) * 100
-            else:
-                outlier_percentage = 0
-
-            outlier_penalty = outlier_percentage * 0.25  # 25% weight
-            data['outliers'] = outliers_info
-            data['outliers_count'] = int(outliers_count)
-            data['outlier_percentage'] = round(outlier_percentage, 2)
-
-            # 4. Data type issues (future enhancement)
-            # This would check for columns that might have inappropriate data types
-
-            # Calculate final quality score
-            total_penalty = missing_penalty + duplicate_penalty + outlier_penalty
-            data['quality_score'] = round(max(0, 100 - total_penalty), 1)
-
-            # Store quality score components for transparency
+            # Use robust ISO 25012-based quality scoring
+            quality_result = calculate_robust_quality_score(df)
+            
+            data['quality_score'] = quality_result['overall_score']
+            data['quality_dimensions'] = quality_result['dimensions']
+            
+            # Extract legacy format for backward compatibility
+            completeness = quality_result['dimensions']['completeness']['details']
+            uniqueness = quality_result['dimensions']['uniqueness']['details']
+            consistency = quality_result['dimensions']['consistency']['details']
+            validity = quality_result['dimensions']['validity']['details']
+            
+            data['missing_values'] = completeness['missing_count']
+            data['duplicate_rows'] = uniqueness['duplicate_count']
+            data['outliers_count'] = consistency['outlier_count']
+            
+            # Store comprehensive quality components
             data['quality_components'] = {
-                'missing_values': {
-                    'count': int(missing_values),
-                    'percentage': round(missing_percentage, 2),
-                    'penalty': round(missing_penalty, 2),
-                    'weight': 1.0  # 100% weight
+                'completeness': {
+                    'score': quality_result['dimensions']['completeness']['score'],
+                    'weight': quality_result['dimensions']['completeness']['weight'],
+                    'missing_count': completeness['missing_count'],
+                    'missing_percentage': completeness['missing_percentage']
                 },
-                'duplicate_rows': {
-                    'count': int(duplicate_rows),
-                    'percentage': round(duplicate_percentage, 2),
-                    'penalty': round(duplicate_penalty, 2),
-                    'weight': 0.5  # 50% weight
+                'uniqueness': {
+                    'score': quality_result['dimensions']['uniqueness']['score'],
+                    'weight': quality_result['dimensions']['uniqueness']['weight'],
+                    'duplicate_count': uniqueness['duplicate_count'],
+                    'duplicate_percentage': uniqueness['duplicate_percentage']
                 },
-                'outliers': {
-                    'count': int(outliers_count),
-                    'percentage': round(outlier_percentage, 2),
-                    'penalty': round(outlier_penalty, 2),
-                    'weight': 0.25  # 25% weight
+                'consistency': {
+                    'score': quality_result['dimensions']['consistency']['score'],
+                    'weight': quality_result['dimensions']['consistency']['weight'],
+                    'outlier_count': consistency['outlier_count'],
+                    'infinite_count': consistency['infinite_count']
+                },
+                'validity': {
+                    'score': quality_result['dimensions']['validity']['score'],
+                    'weight': quality_result['dimensions']['validity']['weight'],
+                    'empty_strings': validity['empty_strings'],
+                    'dtype_mismatches': validity['dtype_mismatches']
+                },
+                'accuracy': {
+                    'score': quality_result['dimensions']['accuracy']['score'],
+                    'weight': quality_result['dimensions']['accuracy']['weight'],
+                    'extreme_values': quality_result['dimensions']['accuracy']['details']['extreme_values']
                 }
             }
+            
+            # Old calculation code removed - using robust scorer instead
+
+
 
         elif file_type == 'json':
             # Read JSON file
@@ -1044,78 +1400,9 @@ def analyze_file(file_path, file_type):
             }
 
         elif file_type in ['xlsx', 'xls']:
-            # Basic Excel file analysis
+            # Use same comprehensive analysis as CSV
             df = pd.read_excel(file_path)
-            data['rows'] = len(df)
-            data['columns'] = len(df.columns)
-
-            # Calculate quality metrics (similar to CSV)
-            # 1. Missing values (100% weight of their percentage)
-            missing_values = df.isnull().sum().sum()
-            total_values = data['rows'] * data['columns']
-            missing_percentage = (missing_values / total_values) * 100 if total_values > 0 else 0
-            missing_penalty = missing_percentage  # Full weight (100%)
-            data['missing_values'] = int(missing_values)
-            data['missing_percentage'] = round(missing_percentage, 2)
-
-            # 2. Duplicate rows (50% weight of their percentage)
-            duplicate_rows = df.duplicated().sum()
-            duplicate_percentage = (duplicate_rows / data['rows']) * 100 if data['rows'] > 0 else 0
-            duplicate_penalty = duplicate_percentage * 0.5  # 50% weight
-            data['duplicate_rows'] = int(duplicate_rows)
-            data['duplicate_percentage'] = round(duplicate_percentage, 2)
-
-            # 3. Outliers in numerical columns (25% weight of their percentage)
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            outliers_count = 0
-            outliers_info = {}
-
-            for col in numeric_cols:
-                if len(df[col].dropna()) > 0:
-                    Q1 = df[col].quantile(0.25)
-                    Q3 = df[col].quantile(0.75)
-                    IQR = Q3 - Q1
-                    outlier_step = 1.5 * IQR
-                    outliers_in_col = ((df[col] < (Q1 - outlier_step)) | (df[col] > (Q3 + outlier_step))).sum()
-                    outliers_count += outliers_in_col
-                    outliers_info[col] = int(outliers_in_col)
-
-            # Safety check to avoid division by zero
-            if len(numeric_cols) > 0 and data['rows'] > 0:
-                outlier_percentage = (outliers_count / (len(numeric_cols) * data['rows'])) * 100
-            else:
-                outlier_percentage = 0
-
-            outlier_penalty = outlier_percentage * 0.25  # 25% weight
-            data['outliers'] = outliers_info
-            data['outliers_count'] = int(outliers_count)
-            data['outlier_percentage'] = round(outlier_percentage, 2)
-
-            # Calculate final quality score
-            total_penalty = missing_penalty + duplicate_penalty + outlier_penalty
-            data['quality_score'] = round(max(0, 100 - total_penalty), 1)
-
-            # Store quality score components for transparency
-            data['quality_components'] = {
-                'missing_values': {
-                    'count': int(missing_values),
-                    'percentage': round(missing_percentage, 2),
-                    'penalty': round(missing_penalty, 2),
-                    'weight': 1.0  # 100% weight
-                },
-                'duplicate_rows': {
-                    'count': int(duplicate_rows),
-                    'percentage': round(duplicate_percentage, 2),
-                    'penalty': round(duplicate_penalty, 2),
-                    'weight': 0.5  # 50% weight
-                },
-                'outliers': {
-                    'count': int(outliers_count),
-                    'percentage': round(outlier_percentage, 2),
-                    'penalty': round(outlier_penalty, 2),
-                    'weight': 0.25  # 25% weight
-                }
-            }
+            return analyze_file_dataframe(df)
 
         else:
             # For other file types like images or text
@@ -1568,51 +1855,54 @@ def transform_dataset(dataset_id):
             return jsonify(
                 {"success": False, "message": f"Error applying transformations: {str(transform_error)}"}), 500
 
-        # Save transformed data to file
+        # Save transformed data - OVERWRITE original file
         try:
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            new_filename = f"transformed_{timestamp}_{dataset['name']}"
-            new_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
-
             if file_type == 'csv':
-                transformed_df.to_csv(new_path, index=False)
+                transformed_df.to_csv(file_path, index=False)
             else:
-                transformed_df.to_excel(new_path, index=False)
+                transformed_df.to_excel(file_path, index=False)
 
-            logger.info(f"Saved transformed dataset to {new_path}")
+            logger.info(f"Saved transformed dataset to {file_path}")
         except Exception as save_error:
             logger.error(f"Error saving transformed file: {str(save_error)}")
             return jsonify({"success": False, "message": f"Error saving transformed file: {str(save_error)}"}), 500
 
-        # Create new dataset entry
-        new_dataset_id = next_dataset_id
-        next_dataset_id += 1
+        # Recalculate quality score for transformed dataset
+        new_analysis = analyze_file(file_path, file_type)
+        new_quality_score = new_analysis.get('quality_score', 0)
+        original_quality_score = dataset.get('quality_score', 0)
+        
+        # Update ORIGINAL dataset with new quality score
+        dataset['rows'] = len(transformed_df)
+        dataset['columns'] = len(transformed_df.columns)
+        dataset['quality_score'] = new_quality_score
+        dataset['quality_components'] = new_analysis.get('quality_components', {})
+        dataset['missing_values'] = new_analysis.get('missing_values', 0)
+        dataset['duplicate_rows'] = new_analysis.get('duplicate_rows', 0)
+        dataset['outliers_count'] = new_analysis.get('outliers_count', 0)
+        dataset['preprocessed'] = True
+        dataset['preprocessed_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        new_dataset = {
-            "id": new_dataset_id,
-            "name": new_filename,
-            "file_type": file_type,
-            "file_path": new_path,
-            "rows": len(transformed_df),
-            "columns": len(transformed_df.columns),
-            "quality_score": dataset['quality_score'],
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "active": False,
-            "is_transformed": True,
-            "original_dataset_id": dataset_id
-        }
+        # Update in datasets dictionary
+        for i, ds in enumerate(user_datasets):
+            if ds['id'] == dataset_id:
+                user_datasets[i] = dataset
+                break
+        
+        datasets[user_id] = user_datasets
+        
+        # Save metadata to disk for persistence
+        save_datasets_metadata()
 
-        # Add to user's datasets
-        if user_id not in datasets:
-            datasets[user_id] = []
-        datasets[user_id].append(new_dataset)
-
-        logger.info(f"Created new dataset with ID {new_dataset_id}")
+        logger.info(f"Updated dataset {dataset_id} with new quality score: {new_quality_score}")
 
         return jsonify({
             "success": True,
             "message": "Dataset transformed successfully",
-            "new_dataset_id": new_dataset_id
+            "dataset_id": dataset_id,
+            "original_quality_score": round(original_quality_score, 1),
+            "new_quality_score": round(new_quality_score, 1),
+            "quality_improvement": round(new_quality_score - original_quality_score, 1)
         })
 
     except Exception as e:
@@ -1620,6 +1910,37 @@ def transform_dataset(dataset_id):
         return jsonify({"success": False, "message": f"Error transforming dataset: {str(e)}"}), 500
 
 # todo --------------PyCaretPreprocessor (End) ----------------------
+
+@app.route('/api/explain/ml', methods=['POST'])
+@login_required
+def explain_ml():
+    """Get GPT-3.5 explanation for ML results"""
+    try:
+        from gpt_explainer import explain_ml_results
+        data = request.json
+        explanation = explain_ml_results(
+            data.get('model_name'),
+            data.get('performance', {}),
+            data.get('dataset_info', {})
+        )
+        return jsonify({'success': True, 'explanation': explanation})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/explain/feature', methods=['POST'])
+@login_required
+def explain_feature():
+    """Get GPT-3.5 explanation for feature engineering"""
+    try:
+        from gpt_explainer import explain_feature_engineering
+        data = request.json
+        explanation = explain_feature_engineering(
+            data.get('operation'),
+            data.get('results', {})
+        )
+        return jsonify({'success': True, 'explanation': explanation})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

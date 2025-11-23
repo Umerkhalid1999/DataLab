@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fetch dataset metadata and columns
   if (datasetId) {
     fetchDatasetInfo(datasetId);
+    // Auto-load data and generate visualizations on page load
+    fetchDatasetData(datasetId);
   }
   
   /**

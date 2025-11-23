@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Community - DataLab{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/community.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="community-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="community-sidebar-nav">
+        <div class="sidebar-brand">
+            <i class="fas fa-chart-line"></i>
+            <h2>DataLab</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard" class="menu-item">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/ml" class="menu-item">
+                <i class="fas fa-brain"></i>
+                <span>ML Models</span>
+            </a>
+            <a href="/module6" class="menu-item">
+                <i class="fas fa-magic"></i>
+                <span>Feature Engineering</span>
+            </a>
+            <a href="/community" class="menu-item active">
+                <i class="fas fa-users"></i>
+                <span>Community</span>
+            </a>
+            <a href="{{ url_for('logout') }}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="community-main">
+        <!-- Header Section -->
+        <header class="community-header">
+            <div class="header-left">
+                <div class="header-profile">
+                    <div class="header-avatar" id="headerAvatarContainer">
+                        <img src="{{ user.profile_image or '/static/img/default-avatar.png' }}"
+                             alt="Profile"
+                             id="headerProfileImage"
+                             class="header-profile-img"
+                             onerror="this.onerror=null; this.src='/static/img/default-avatar.png';">
+                        <button class="quick-upload-btn" id="quickUploadBtn" title="Change profile picture">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                    <div class="header-text">
+                        <h1><i class="fas fa-users"></i> DataLab Community</h1>
+                        <p>Welcome back, <strong>{{ user.username }}</strong>! Connect and collaborate with data scientists</p>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-theme-toggle" id="themeToggle" title="Toggle theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <button class="btn-new-post" id="newPostBtn">
+                    <i class="fas fa-plus-circle"></i> Create Post
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <section class="stats-dashboard">
+            <div class="stat-box">
+                <div class="stat-icon blue">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="activeMembers">0</h3>
+                    <p>Active Now</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon green">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalPosts">0</h3>
+                    <p>Total Posts</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon orange">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalComments">0</h3>
+                    <p>Comments</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon purple">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="trendingCount">0</h3>
+                    <p>Trending Topics</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Posts Feed -->
+            <section class="posts-section">
+                <!-- Category Filters -->
+                <div class="category-filters">
+                    <button class="filter-btn active" data-category="all">
+                        <i class="fas fa-globe"></i> All Posts
+                    </button>
+                    <button class="filter-btn" data-category="questions">
+                        <i class="fas fa-question-circle"></i> Questions
+                    </button>
+                    <button class="filter-btn" data-category="tutorials">
+                        <i class="fas fa-book"></i> Tutorials
+                    </button>
+                    <button class="filter-btn" data-category="showcases">
+                        <i class="fas fa-star"></i> Showcases
+                    </button>
+                </div>
+
+                <!-- Posts Container -->
+                <div class="posts-container" id="postsContainer">
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyState">
+                        <i class="fas fa-comments"></i>
+                        <h3>No Posts Yet</h3>
+                        <p>Be the first to start a discussion!</p>
+                        <button class="btn-primary" onclick="document.getElementById('newPostBtn').click()">
+                            <i class="fas fa-plus"></i> Create First Post
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Sidebar -->
+            <aside class="right-sidebar">
+                <!-- Message Requests -->
+                <div class="sidebar-card" id="messageRequestsCard" style="display: none;">
+                    <h3>
+                        <i class="fas fa-envelope"></i> Message Requests
+                        <span class="badge-count" id="requestBadge">0</span>
+                    </h3>
+                    <div class="message-requests" id="messageRequestsList">
+                        <p class="text-muted">No pending requests</p>
+                    </div>
+                </div>
+
+                <!-- Active Members with Chat -->
+                <div class="sidebar-card">
+                    <h3>
+                        <i class="fas fa-users-cog"></i> Active Members
+                        <button class="btn-icon" id="openMessagesBtn" title="Messages">
+                            <i class="fas fa-comments"></i>
+                        </button>
+                    </h3>
+                    <div class="active-members" id="activeMembersList">
+                        <p class="text-muted">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Trending Topics -->
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-fire"></i> Trending Topics</h3>
+                    <div class="trending-topics" id="trendingList">
+                        <p class="text-muted">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Resources -->
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-book-open"></i> Resources</h3>
+                    <div class="resource-links">
+                        <a href="https://scikit-learn.org" target="_blank" class="resource-link">
+                            <i class="fas fa-book"></i> Scikit-Learn Docs
+                        </a>
+                        <a href="https://www.kaggle.com/learn" target="_blank" class="resource-link">
+                            <i class="fas fa-trophy"></i> Kaggle Courses
+                        </a>
+                        <a href="https://pandas.pydata.org" target="_blank" class="resource-link">
+                            <i class="fab fa-python"></i> Pandas Docs
+                        </a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+</div>
+
+<!-- New Post Modal -->
+<div class="modal-overlay" id="postModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2><i class="fas fa-edit"></i> Create New Post</h2>
+            <button class="btn-close" id="closeModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form class="modal-body" id="postForm">
+            <div class="form-group">
+                <label>Post Type</label>
+                <select id="postType" class="form-input" required>
+                    <option value="discussion">Discussion</option>
+                    <option value="questions">Question</option>
+                    <option value="tutorials">Tutorial</option>
+                    <option value="showcases">Showcase</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="postTitle" class="form-input" placeholder="What's on your mind?" required>
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <textarea id="postContent" class="form-input" rows="5" placeholder="Share your thoughts..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Tags (comma-separated)</label>
+                <input type="text" id="postTags" class="form-input" placeholder="python, machine-learning, data-science">
+            </div>
+            <button type="submit" class="btn-primary btn-block">
+                <i class="fas fa-paper-plane"></i> Post to Community
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Messages Modal -->
+<div class="modal-overlay" id="messagesModal">
+    <div class="modal-container modal-large">
+        <div class="modal-header">
+            <h2><i class="fas fa-comments"></i> Messages</h2>
+            <button class="btn-close" id="closeMessagesModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body messages-body">
+            <div class="messages-layout">
+                <!-- Conversations List -->
+                <div class="conversations-sidebar">
+                    <div class="search-box">
+                        <input type="text" id="searchMembers" placeholder="Search members..." class="form-input">
+                        <button class="btn-secondary" id="newMessageBtn">
+                            <i class="fas fa-plus"></i> New Message
+                        </button>
+                    </div>
+                    <div class="conversations-list" id="conversationsList">
+                        <p class="text-muted">Loading conversations...</p>
+                    </div>
+                </div>
+
+                <!-- Chat Area -->
+                <div class="chat-area" id="chatArea">
+                    <div class="chat-placeholder">
+                        <i class="fas fa-comments"></i>
+                        <p>Select a conversation to start messaging</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Message Modal (Select User) -->
+<div class="modal-overlay" id="newMessageModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> New Message</h2>
+            <button class="btn-close" id="closeNewMessageModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Select a member to message:</label>
+                <input type="text" id="searchNewMembers" placeholder="Search members..." class="form-input">
+            </div>
+            <div class="members-list" id="newMessageMembersList">
+                <p class="text-muted">Loading members...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Profile Image Modal -->
+<div class="modal-overlay" id="uploadImageModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2><i class="fas fa-camera"></i> Change Profile Picture</h2>
+            <button class="btn-close" id="closeUploadImageModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="image-upload-area" id="imageUploadArea">
+                <div class="upload-placeholder">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload or drag and drop</p>
+                    <small>PNG, JPG, JPEG, GIF, WEBP (Max 5MB)</small>
+                </div>
+                <input type="file" id="profileImageInput" accept="image/png,image/jpg,image/jpeg,image/gif,image/webp" style="display: none;">
+            </div>
+            <div id="imagePreview" style="display: none; text-align: center; margin-top: 20px;">
+                <img id="previewImg" style="max-width: 100%; max-height: 300px; border-radius: 8px;">
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button class="btn-secondary" onclick="cancelImageUpload()" style="flex: 1;">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn-primary" onclick="uploadProfileImage()" style="flex: 1;">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/community.js') }}"></script>
+{% endblock %}

@@ -12,11 +12,29 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeUpload();
     initializeSearch();
     initializeDeleteActions();
+    initializeCleanDataset();
     initializeVisualizationNav();
 
     // Initialize theme selector
     initializeTheme();
+
+    // Initialize Bootstrap tooltips for quality score info
+    initializeTooltips();
 });
+
+// Initialize Bootstrap tooltips
+function initializeTooltips() {
+    // Check if Bootstrap is available
+    if (typeof bootstrap !== 'undefined') {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                html: false,
+                trigger: 'hover focus'
+            });
+        });
+    }
+}
 
 // Fix sidebar styling issues
 function fixSidebarStyling() {
@@ -163,6 +181,15 @@ function initializeUpload() {
             uploadFile(files[0]);
         }
     }, false);
+
+    // Connect button to file input
+    const uploadButton = document.querySelector('.file-upload-btn');
+    if (uploadButton) {
+        uploadButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            fileInput.click();
+        });
+    }
 
     // Handle file selection
     fileInput.addEventListener('change', function() {
@@ -332,6 +359,179 @@ function initializeDeleteActions() {
     });
 }
 
+// Initialize clean dataset functionality with modal UI
+function initializeCleanDataset() {
+    const cleanButtons = document.querySelectorAll('.clean-dataset');
+    if (!cleanButtons.length) return;
+
+    cleanButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const datasetId = this.getAttribute('data-id');
+            const datasetName = this.getAttribute('data-name');
+            showCleaningModal(datasetId, datasetName);
+        });
+    });
+}
+
+// Show cleaning options modal
+function showCleaningModal(datasetId, datasetName) {
+    const modalHTML = `
+        <div class="modal fade" id="cleaningModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="fas fa-robot me-2"></i>AI-Powered Preprocessing: ${datasetName}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-brain me-2"></i>
+                            <strong>Intelligent Analysis:</strong> AI will analyze your dataset, detect issues, and apply only necessary transformations with complete transparency.
+                        </div>
+                        <div id="cleaningProgress" class="d-none mt-3">
+                            <div class="progress" style="height: 30px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: 100%">
+                                    <i class="fas fa-cog fa-spin me-2"></i>AI Analyzing Dataset...
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cleaningResults" class="d-none mt-3"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" id="applyCleaningBtn">
+                            <i class="fas fa-magic me-2"></i>Start AI Preprocessing
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('cleaningModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    const modal = new bootstrap.Modal(document.getElementById('cleaningModal'));
+    modal.show();
+    
+    document.getElementById('applyCleaningBtn').addEventListener('click', function() {
+        applyCleaningOperations(datasetId, modal);
+    });
+}
+
+// Apply cleaning operations
+function applyCleaningOperations(datasetId, modal) {
+    document.getElementById('cleaningProgress').classList.remove('d-none');
+    document.getElementById('applyCleaningBtn').disabled = true;
+    
+    fetch(`/api/clean_dataset/${datasetId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('cleaningProgress').classList.add('d-none');
+        
+        if (data.success) {
+            displayIntelligentResults(data);
+        } else {
+            alert('Error: ' + data.message);
+            document.getElementById('applyCleaningBtn').disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred: ' + error);
+        document.getElementById('cleaningProgress').classList.add('d-none');
+        document.getElementById('applyCleaningBtn').disabled = false;
+    });
+}
+
+// Display cleaning results with AI explanation
+function displayCleaningResults(data) {
+    const resultsDiv = document.getElementById('cleaningResults');
+    resultsDiv.classList.remove('d-none');
+    
+    // Check if dataset was already clean
+    if (data.transformations.length === 0) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-success">
+                <h5><i class="fas fa-check-circle me-2"></i>Dataset Already Clean!</h5>
+                <p class="mb-0">No data quality issues detected. Your dataset is in excellent condition.</p>
+            </div>
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-thumbs-up me-2"></i>AI Analysis
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">${data.ai_explanation}</p>
+                </div>
+            </div>
+            <div class="mt-3 text-center">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Show issues found
+    let issuesHTML = '<h6>Issues Detected:</h6><ul class="list-group mb-3">';
+    for (const [issue, details] of Object.entries(data.issues_found)) {
+        if (issue === 'missing_values') {
+            issuesHTML += `<li class="list-group-item list-group-item-warning">
+                <strong>Missing Values:</strong> ${details.total} (${details.percentage}%)</li>`;
+        } else if (issue === 'duplicates') {
+            issuesHTML += `<li class="list-group-item list-group-item-warning">
+                <strong>Duplicates:</strong> ${details.count} rows (${details.percentage}%)</li>`;
+        } else if (issue === 'outliers') {
+            issuesHTML += `<li class="list-group-item list-group-item-warning">
+                <strong>Outliers:</strong> ${details.total} values</li>`;
+        } else if (issue === 'high_variance') {
+            issuesHTML += `<li class="list-group-item list-group-item-info">
+                <strong>High Variance:</strong> ${details.columns.length} columns need scaling</li>`;
+        }
+    }
+    issuesHTML += '</ul>';
+    
+    // Show transformations applied
+    let transformationsHTML = '<h6>Transformations Applied:</h6><ul class="list-group mb-3">';
+    data.transformations.forEach(t => {
+        transformationsHTML += `<li class="list-group-item list-group-item-success">
+            <strong>${t.type}:</strong> ${t.reason}</li>`;
+    });
+    transformationsHTML += '</ul>';
+    
+    resultsDiv.innerHTML = `
+        <div class="alert alert-success">
+            <h5><i class="fas fa-check-circle me-2"></i>Smart Cleaning Complete!</h5>
+            <p><strong>Quality Score:</strong> ${data.quality_improvement.original}% → ${data.quality_improvement.new}% 
+            <span class="badge bg-success">+${data.quality_improvement.improvement}%</span></p>
+        </div>
+        ${issuesHTML}
+        ${transformationsHTML}
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-robot me-2"></i>AI Analysis
+            </div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-wrap;">${data.ai_explanation}</p>
+            </div>
+        </div>
+        <div class="mt-3 text-center">
+            <button class="btn btn-primary" onclick="window.location.reload()">
+                <i class="fas fa-redo me-2"></i>Refresh Dashboard
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('applyCleaningBtn').classList.add('d-none');
+}
+
 // Initialize visualization navigation
 function initializeVisualizationNav() {
     const visualizationsNavLink = document.getElementById('visualizationsNavLink');
@@ -401,37 +601,85 @@ function showToast(message, type = 'info', duration = 5000) {
 
 // Enhanced upload success with better integration
 function handleUploadSuccess(response) {
-    // Show success message with visualization option
+    // Show success message with quality score info
+    const dataset = response.dataset;
+    const qualityInfo = dataset.quality_score ? `
+        <div class="mt-2 p-2 bg-light rounded">
+            <strong>Quality Score: ${dataset.quality_score}%</strong>
+            <div class="small text-muted">
+                Rows: ${dataset.rows} | Columns: ${dataset.columns}
+            </div>
+        </div>
+    ` : '';
+    
     uploadMessage.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <i class="fas fa-check-circle me-2"></i>
-                ${response.message}
+        <div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-check-circle me-2"></i>
+                    ${response.message}
+                </div>
+                <div>
+                    <a href="/visualization/${response.dataset_id}" class="btn btn-sm btn-primary me-2">
+                        <i class="fas fa-chart-bar me-1"></i>Visualize
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                        <i class="fas fa-redo me-1"></i>Refresh
+                    </button>
+                </div>
             </div>
-            <div>
-                <a href="/visualization/${response.dataset_id}" class="btn btn-sm btn-primary me-2">
-                    <i class="fas fa-chart-bar me-1"></i>Visualize Now
-                </a>
-                <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
-                    <i class="fas fa-redo me-1"></i>Continue
-                </button>
-            </div>
+            ${qualityInfo}
         </div>
     `;
     uploadMessage.classList.remove('d-none', 'alert-danger');
     uploadMessage.classList.add('alert-success');
 
-    // Show toast notification
-    showToast(
-        `📊 Dataset "${response.dataset.name}" uploaded successfully! <a href="/visualization/${response.dataset_id}" class="text-white text-decoration-underline">Click here to visualize</a>`,
-        'success',
-        7000
-    );
-
-    // Auto-refresh after 8 seconds if user doesn't click
+    // Auto-refresh after 5 seconds
     setTimeout(function() {
         if (document.contains(uploadMessage)) {
             window.location.reload();
         }
-    }, 8000);
+    }, 5000);
+}
+
+
+// Update dataset quality score in real-time
+function updateDatasetQualityScore(datasetId, updatedDataset) {
+    const datasetCard = document.querySelector(`.dataset-card[data-id="${datasetId}"]`);
+    if (!datasetCard) return;
+    
+    // Update quality score display
+    const qualityScoreSpan = datasetCard.querySelector('.fw-bold');
+    if (qualityScoreSpan && qualityScoreSpan.textContent.includes('%')) {
+        qualityScoreSpan.textContent = `${updatedDataset.quality_score}%`;
+    }
+    
+    // Update quality bar
+    const qualityBar = datasetCard.querySelector('.quality-bar');
+    if (qualityBar) {
+        qualityBar.style.width = `${updatedDataset.quality_score}%`;
+        
+        // Update color based on score
+        if (updatedDataset.quality_score >= 80) {
+            qualityBar.style.backgroundColor = '#28a745';
+        } else if (updatedDataset.quality_score >= 60) {
+            qualityBar.style.backgroundColor = '#ffc107';
+        } else {
+            qualityBar.style.backgroundColor = '#dc3545';
+        }
+    }
+    
+    // Update quality components data attribute
+    const qualityInfoIcon = datasetCard.querySelector('.quality-score-info');
+    if (qualityInfoIcon && updatedDataset.quality_components) {
+        qualityInfoIcon.setAttribute('data-quality-score', updatedDataset.quality_score);
+        qualityInfoIcon.setAttribute('data-quality-components', JSON.stringify(updatedDataset.quality_components));
+    }
+    
+    // Update rows and columns
+    const rowsDiv = datasetCard.querySelector('.col-6:nth-child(1) .fw-bold');
+    if (rowsDiv) rowsDiv.textContent = updatedDataset.rows;
+    
+    const columnsDiv = datasetCard.querySelector('.col-6:nth-child(2) .fw-bold');
+    if (columnsDiv) columnsDiv.textContent = updatedDataset.columns;
 }
