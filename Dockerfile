@@ -4,7 +4,7 @@ FROM python:3.11
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
+WORKDIR /main
 
 # Install system deps needed for some Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential gcc \
