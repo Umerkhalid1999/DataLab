@@ -68,34 +68,55 @@ class Config:
     )
 
 
-# Initialize Firebase Admin SDK
 def initialize_firebase():
     try:
-        # Check if Firebase config file exists and is valid
-        if not os.path.exists(Config.FIREBASE_CONFIG_PATH):
-            logger.warning(f"Firebase config file not found at: {Config.FIREBASE_CONFIG_PATH}")
+        # FIRST: Check if environment variables are available
+        if all(key in os.environ for key in ['FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY']):
+            logger.info("Initializing Firebase from environment variables...")
+            firebase_config = {
+                "type": os.environ.get('FIREBASE_TYPE', 'service_account'),
+                "project_id": os.environ.get('FIREBASE_PROJECT_ID'),
+                "private_key_id": os.environ.get('FIREBASE_PRIVATE_KEY_ID'),
+                "private_key": os.environ.get('FIREBASE_PRIVATE_KEY').replace('\\n', '\n'),
+                "client_email": os.environ.get('FIREBASE_CLIENT_EMAIL'),
+                "client_id": os.environ.get('FIREBASE_CLIENT_ID'),
+                "auth_uri": os.environ.get('FIREBASE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth'),
+                "token_uri": os.environ.get('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+                "auth_provider_x509_cert_url": os.environ.get('FIREBASE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
+                "client_x509_cert_url": os.environ.get('FIREBASE_CLIENT_CERT_URL'),
+                "universe_domain": "googleapis.com"
+            }
+            cred = credentials.Certificate(firebase_config)
+            firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin SDK initialized successfully from environment variables")
+            return True
+        
+        # SECOND: Fallback to config file (for local development)
+        elif os.path.exists(Config.FIREBASE_CONFIG_PATH):
+            logger.info(f"Initializing Firebase from config file: {Config.FIREBASE_CONFIG_PATH}")
+            
+            # Check if file is empty or invalid
+            try:
+                with open(Config.FIREBASE_CONFIG_PATH, 'r') as f:
+                    content = f.read().strip()
+                    if not content or len(content) < 10:
+                        logger.warning("Firebase config file is empty or invalid")
+                        return False
+            except Exception as e:
+                logger.warning(f"Cannot read Firebase config file: {e}")
+                return False
+            
+            cred = credentials.Certificate(Config.FIREBASE_CONFIG_PATH)
+            firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin SDK initialized successfully from config file")
+            return True
+        
+        # If neither environment variables nor config file exists
+        else:
+            logger.warning(f"Firebase config not found at: {Config.FIREBASE_CONFIG_PATH}")
             logger.warning("Firebase authentication will be disabled. App will run in development mode.")
             return False
-        
-        # Check if file is empty or invalid
-        try:
-            with open(Config.FIREBASE_CONFIG_PATH, 'r') as f:
-                content = f.read().strip()
-                if not content or len(content) < 10:  # Basic validation
-                    logger.warning("Firebase config file is empty or invalid")
-                    logger.warning("Firebase authentication will be disabled. App will run in development mode.")
-                    return False
-        except Exception as e:
-            logger.warning(f"Cannot read Firebase config file: {e}")
-            logger.warning("Firebase authentication will be disabled. App will run in development mode.")
-            return False
-        
-        # Try to initialize Firebase
-        cred = credentials.Certificate(Config.FIREBASE_CONFIG_PATH)
-        firebase_admin.initialize_app(cred)
-        logger.info("Firebase Admin SDK initialized successfully")
-        return True
-        
+            
     except Exception as e:
         logger.warning(f"Firebase initialization failed: {e}")
         logger.warning("Firebase authentication will be disabled. App will run in development mode.")
