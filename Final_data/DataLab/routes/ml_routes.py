@@ -209,7 +209,11 @@ def analyze(dataset_id):
         print("[SUCCESS] ML Analysis complete!")
         print(f"[BEST MODEL] {best_model['model']} with {best_model['suitability_score']:.1f}% suitability score")
 
-        return jsonify(sanitized_response)
+        # Wrap response with success field for workflow compatibility
+        return jsonify({
+            'success': True,
+            **sanitized_response
+        })
 
     except Exception as e:
         print(f"[ERROR] ML Analysis Error: {str(e)}")  # Server-side logging

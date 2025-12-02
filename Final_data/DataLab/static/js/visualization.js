@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchDatasetInfo(datasetId);
     // Auto-load data and generate visualizations on page load
     fetchDatasetData(datasetId);
+  } else {
+    showError('No dataset selected. Please return to Dashboard and choose a dataset.');
   }
   
   /**
@@ -75,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch(`/api/dataset/${datasetId}/info`)
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error('Failed to load dataset info');
         }
         return response.json();
       })
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .catch(error => {
         console.error('Error fetching dataset info:', error);
-        showError('Failed to load dataset information. Please try again.');
+        showError(error.message || 'Failed to load dataset information. Please try again.');
         showLoading(false);
       });
   }
@@ -107,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch(`/api/dataset/${datasetId}/data?limit=${limit}`)
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error('Failed to load dataset data');
         }
         return response.json();
       })
@@ -124,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .catch(error => {
         console.error('Error fetching dataset data:', error);
-        showError('Failed to load dataset data. Please try again.');
+        showError(error.message || 'Failed to load dataset data. Please try again.');
         showLoading(false);
       });
   }
@@ -148,9 +150,18 @@ document.addEventListener('DOMContentLoaded', function() {
    * Show error message
    */
   function showError(message) {
-    // Implement an error toast or notification
     console.error('ERROR:', message);
-    alert(message); // Simple fallback
+    const container = document.getElementById('autoVizContainer');
+    if (container) {
+      container.innerHTML = `
+        <div class="col-12">
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>${message}
+          </div>
+        </div>`;
+    } else {
+      alert(message);
+    }
   }
   
   /**

@@ -42,6 +42,8 @@
     height: 100vh;
     position: sticky;
     top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar * {
@@ -100,6 +102,31 @@
 
 .nav-item.active a i, .nav-item a:hover i {
     color: white !important;
+}
+
+/* Custom Scrollbar for Sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.7);
+}
+
+/* Firefox scrollbar */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(102, 126, 234, 0.5) rgba(255, 255, 255, 0.05);
 }
 
 /* Fix for vertical sidebar in Image 1 */

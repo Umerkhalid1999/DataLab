@@ -3,106 +3,853 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow Management - DataLab</title>
+    <title>Open Mode Workflow - DataLab</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background: #f5f7fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .header-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
-        .card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .step-card { border-left: 4px solid #667eea; transition: all 0.3s; cursor: pointer; }
-        .step-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
-        .btn-primary:hover { opacity: 0.9; }
-        .pipeline-step { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #667eea; }
-        .badge-custom { background: #667eea; color: white; padding: 5px 10px; border-radius: 15px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .workflow-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* Top Header */
+        .workflow-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 1000;
+        }
+
+        .workflow-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #667eea;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-header {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary-custom {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary-custom {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #e9ecef;
+        }
+
+        /* Left Sidebar - Toolbox */
+        .toolbox {
+            position: fixed;
+            left: 0;
+            top: 70px;
+            width: 280px;
+            height: calc(100vh - 70px);
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .toolbox-section {
+            margin-bottom: 25px;
+        }
+
+        .toolbox-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: grab;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tool-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tool-item:active {
+            cursor: grabbing;
+        }
+
+        .tool-icon {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .tool-info {
+            flex: 1;
+        }
+
+        .tool-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .tool-desc {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        /* Main Canvas */
+        .canvas-container {
+            margin-left: 280px;
+            margin-top: 70px;
+            width: calc(100% - 280px);
+            height: calc(100vh - 70px);
+            position: relative;
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            overflow: auto;
+        }
+
+        .canvas-content {
+            min-width: 100%;
+            min-height: 100%;
+            position: relative;
+            padding: 30px;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            max-width: 600px;
+            margin: 50px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 50px 30px;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f3ff;
+            border-color: #5568d3;
+        }
+
+        .upload-area.dragover {
+            background: #e8ecff;
+            border-color: #5568d3;
+        }
+
+        .upload-icon {
+            font-size: 60px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .upload-subtext {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .dataset-info {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dataset-details {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .dataset-stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+
+        /* Workflow Nodes */
+        .workflow-node {
+            position: absolute;
+            width: 220px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            cursor: move;
+            transition: box-shadow 0.3s;
+            z-index: 10;
+        }
+
+        .workflow-node:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        }
+
+        .workflow-node.dragging {
+            opacity: 0.7;
+            cursor: grabbing;
+        }
+
+        .node-header {
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .node-header.data { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .node-header.statistics { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .node-header.visualization { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .node-header.preprocessing { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .node-header.feature { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .node-header.ml { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .node-header.export { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+
+        .node-body {
+            padding: 15px;
+        }
+
+        .node-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .status-pending { background: #e9ecef; color: #6c757d; }
+        .status-running { background: #fff3cd; color: #856404; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+
+        .node-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .node-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-run {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-run:hover {
+            background: #5568d3;
+        }
+
+        .btn-config {
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .btn-config:hover {
+            background: #e9ecef;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            padding: 8px 12px;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            position: fixed;
+            right: -1100px;
+            top: 70px;
+            width: 1100px;
+            height: calc(100vh - 70px);
+            background: white;
+            box-shadow: -10px 0 28px rgba(0,0,0,0.14);
+            transition: right 0.25s ease-in-out;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #e5e7eb;
+        }
+
+        .results-panel.open {
+            right: 0;
+        }
+
+        .results-header {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .results-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .results-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+            background: linear-gradient(180deg, #f9fafb 0%, #fff 60%);
+        }
+
+        .result-item {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 26px rgba(0,0,0,0.08);
+            padding: 18px 20px;
+            border-radius: 14px;
+            margin-bottom: 18px;
+        }
+
+        .result-time {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+
+        .result-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            color: #111827;
+            margin-bottom: 14px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .result-data {
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-height: 260px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result-image {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .toggle-results {
+            position: absolute;
+            left: -40px;
+            top: 20px;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: none;
+            border-radius: 8px 0 0 8px;
+            box-shadow: -2px 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        /* Connection Lines */
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: #667eea;
+            transform-origin: left center;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal Improvements */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+
+        /* Statistics Result Formatting */
+        .statistics-result {
+            margin-top: 10px;
+        }
+
+        .stat-section {
+            margin-bottom: 20px;
+        }
+
+        .stat-section h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f3ff;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            font-size: 12px;
+        }
+
+        .stats-table thead th {
+            background: #667eea;
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .stats-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stats-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .stats-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .stats-table td {
+            padding: 10px 12px;
+            color: #333;
+        }
+
+        .stats-table td:first-child {
+            font-weight: 500;
+        }
+
+        .categorical-stat {
+            background: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            border-left: 3px solid #667eea;
+        }
+
+        /* Visualization Result Formatting */
+        .visualization-result {
+            margin-top: 10px;
+        }
+
+        .viz-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 20px;
+            margin-top: 14px;
+        }
+
+        .viz-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .viz-item h5 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .viz-item img {
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 8px;
+            cursor: zoom-in;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Feature Engineering Result Formatting */
+        .feature-result {
+            margin-top: 10px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
+
+        .feature-list li {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            border-left: 3px solid #43e97b;
+            color: #333;
+        }
+
+        .feature-list li:before {
+            content: "\f058";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: #43e97b;
+            margin-right: 8px;
+        }
+
+        /* ML Result Formatting */
+        .ml-result {
+            margin-top: 10px;
+        }
+
+        .ml-result pre {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            overflow-x: auto;
+            border: 1px solid #f0f0f0;
+            margin-top: 10px;
+        }
+
+        .ml-result p {
+            background: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-size: 12px;
+            border-left: 3px solid #fa709a;
+        }
     </style>
 </head>
 <body>
-    <div class="container-fluid p-4">
-        <!-- Header -->
-        <div class="header-gradient">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1><i class="fas fa-project-diagram"></i> Workflow Management</h1>
-                    <p class="mb-2">Create automated data preprocessing pipelines</p>
-                    <div>
-                        <span class="badge-custom"><i class="fas fa-database"></i> {{ dataset.name }}</span>
-                        <span class="badge-custom"><i class="fas fa-table"></i> {{ dataset.rows }} × {{ dataset.columns }}</span>
-                        <span class="badge-custom"><i class="fas fa-star"></i> Quality: {{ dataset.quality_score }}%</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-light">
-                    <i class="fas fa-arrow-left"></i> Back to Dashboard
-                </a>
+    <!-- Header -->
+    <div class="workflow-header">
+        <h2><i class="fas fa-project-diagram"></i> Open Mode Workflow</h2>
+        <div class="header-actions">
+            <button class="btn-header btn-secondary-custom" onclick="clearWorkflow()">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
+            <button class="btn-header btn-primary-custom" onclick="executeWorkflow()">
+                <i class="fas fa-play"></i> Run Workflow
+            </button>
+            <button class="btn-header btn-primary-custom" onclick="exportWorkflow()">
+                <i class="fas fa-download"></i> Export Notebook
+            </button>
+            <button class="btn-header btn-secondary-custom" onclick="window.location.href='/dashboard'">
+                <i class="fas fa-home"></i> Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Left Toolbox -->
+    <div class="toolbox">
+        <div id="uploadSection" class="toolbox-section">
+            <div class="toolbox-title">Dataset</div>
+
+            <!-- Existing Datasets Dropdown -->
+            <div id="existingDatasetsSection" style="margin-bottom: 15px;">
+                <select id="existingDatasetSelect" style="width: 100%; padding: 10px; border: 2px solid #667eea; border-radius: 8px; font-size: 13px; color: #333; background: white; cursor: pointer;">
+                    <option value="">Select existing dataset...</option>
+                </select>
+            </div>
+
+            <!-- Divider -->
+            <div style="text-align: center; margin: 15px 0; color: #6c757d; font-size: 12px;">
+                <span style="background: white; padding: 0 10px;">OR</span>
+                <div style="border-top: 1px solid #dee2e6; margin-top: -10px; position: relative; z-index: -1;"></div>
+            </div>
+
+            <!-- Upload New Dataset -->
+            <div style="background: white; border: 2px dashed #667eea; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer;" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 30px; color: #667eea; margin-bottom: 10px;"></i>
+                <div style="font-size: 13px; color: #333; font-weight: 500;">Upload New Dataset</div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 5px;">CSV, Excel, JSON</div>
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json" style="display: none;" onchange="uploadDataset(event)">
+            </div>
+
+            <!-- Current Dataset Info -->
+            <div id="datasetInfoBox" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 10px;">
+                <div style="font-size: 12px; font-weight: 600; color: #667eea; margin-bottom: 8px;">Loaded Dataset</div>
+                <div id="datasetName" style="font-size: 13px; color: #333; margin-bottom: 5px;"></div>
+                <div id="datasetStats" style="font-size: 11px; color: #6c757d;"></div>
             </div>
         </div>
 
-        <div class="row">
-            <!-- Left: Available Steps -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-list"></i> Available Steps</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="step-card card p-3 mb-2" onclick="addStep('missing_values')">
-                            <i class="fas fa-fill-drip text-primary"></i> Handle Missing Values
-                        </div>
-                        <div class="step-card card p-3 mb-2" onclick="addStep('scaling')">
-                            <i class="fas fa-balance-scale text-primary"></i> Scale Features
-                        </div>
-                        <div class="step-card card p-3 mb-2" onclick="addStep('encoding')">
-                            <i class="fas fa-code text-primary"></i> Encode Categories
-                        </div>
-                        <div class="step-card card p-3 mb-2" onclick="addStep('outliers')">
-                            <i class="fas fa-search-minus text-primary"></i> Remove Outliers
-                        </div>
-                    </div>
+        <div class="toolbox-section">
+            <div class="toolbox-title">Analysis Nodes</div>
+            <div class="tool-item" draggable="true" ondragstart="dragStart(event)" data-type="statistics">
+                <div class="tool-icon"><i class="fas fa-chart-bar"></i></div>
+                <div class="tool-info">
+                    <div class="tool-name">Statistics</div>
+                    <div class="tool-desc">Generate statistical summary</div>
                 </div>
             </div>
-
-            <!-- Center: Pipeline Builder -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-hammer"></i> Pipeline Builder</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Pipeline Name</label>
-                            <input type="text" class="form-control" id="pipelineName" value="My Preprocessing Pipeline">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="pipelineDesc" rows="2">Automated data preprocessing workflow</textarea>
-                        </div>
-                        <div id="pipelineSteps" class="mb-3">
-                            <p class="text-muted text-center py-4">Click on steps from the left to add them here</p>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary" onclick="savePipeline()">
-                                <i class="fas fa-save"></i> Save Pipeline
-                            </button>
-                            <button class="btn btn-success" onclick="executePipeline()">
-                                <i class="fas fa-play"></i> Execute Pipeline
-                            </button>
-                        </div>
-                    </div>
+            <div class="tool-item" draggable="true" ondragstart="dragStart(event)" data-type="visualization">
+                <div class="tool-icon"><i class="fas fa-chart-pie"></i></div>
+                <div class="tool-info">
+                    <div class="tool-name">Visualization</div>
+                    <div class="tool-desc">Create data visualizations</div>
                 </div>
             </div>
+        </div>
 
-            <!-- Right: Results -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Results</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="results">
-                            <p class="text-muted text-center">Execute pipeline to see results</p>
-                        </div>
-                    </div>
+        <div class="toolbox-section">
+            <div class="toolbox-title">Processing Nodes</div>
+            <div class="tool-item" draggable="true" ondragstart="dragStart(event)" data-type="preprocessing">
+                <div class="tool-icon"><i class="fas fa-filter"></i></div>
+                <div class="tool-info">
+                    <div class="tool-name">Preprocessing</div>
+                    <div class="tool-desc">Clean and prepare data</div>
+                </div>
+            </div>
+            <div class="tool-item" draggable="true" ondragstart="dragStart(event)" data-type="feature">
+                <div class="tool-icon"><i class="fas fa-cogs"></i></div>
+                <div class="tool-info">
+                    <div class="tool-name">Feature Engineering</div>
+                    <div class="tool-desc">Engineer new features</div>
+                </div>
+            </div>
+            <div class="tool-item" draggable="true" ondragstart="dragStart(event)" data-type="ml">
+                <div class="tool-icon"><i class="fas fa-brain"></i></div>
+                <div class="tool-info">
+                    <div class="tool-name">ML Model</div>
+                    <div class="tool-desc">Train machine learning model</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbox-section">
+            <div class="toolbox-title">Export</div>
+            <div class="tool-item" draggable="true" ondragstart="dragStart(event)" data-type="export">
+                <div class="tool-icon"><i class="fas fa-file-code"></i></div>
+                <div class="tool-info">
+                    <div class="tool-name">Export Notebook</div>
+                    <div class="tool-desc">Generate Jupyter notebook</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <div class="canvas-container" id="canvasContainer" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <div class="canvas-content" id="canvasContent">
+            <div id="welcomeMessage" class="upload-section">
+                <div class="upload-icon"><i class="fas fa-rocket"></i></div>
+                <h3 style="color: #667eea; margin-bottom: 15px;">Welcome to Open Mode Workflow</h3>
+                <p style="color: #6c757d; font-size: 14px; margin-bottom: 25px;">
+                    Upload a dataset to get started, then drag and drop nodes onto the canvas to build your analysis workflow.
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center; align-items: center; font-size: 13px; color: #6c757d;">
+                    <div><i class="fas fa-upload" style="color: #667eea;"></i> Upload Dataset</div>
+                    <div><i class="fas fa-arrows-alt" style="color: #667eea;"></i> Drag Nodes</div>
+                    <div><i class="fas fa-play" style="color: #667eea;"></i> Run Analysis</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-panel" id="resultsPanel">
+        <button class="toggle-results" onclick="toggleResults()">
+            <i class="fas fa-chevron-left" id="toggleIcon"></i>
+        </button>
+        <div class="results-header">
+            <h3><i class="fas fa-list-alt"></i> Results</h3>
+            <button class="btn-header btn-secondary-custom" onclick="clearResults()" style="padding: 6px 12px; font-size: 12px;">
+                <i class="fas fa-eraser"></i> Clear
+            </button>
+        </div>
+        <div class="results-content" id="resultsContent">
+            <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
+                <i class="fas fa-inbox" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>No results yet. Run nodes to see output here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal fade" id="configModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cog"></i> Node Configuration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="configContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveConfig()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Image Modal -->
+    <div class="modal fade" id="fullImageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-expand"></i> Visualization Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="text-align:center;">
+                    <img id="fullImageModalImg" src="" alt="Full Visualization" style="max-width:100%; height:auto; border-radius:8px; border:1px solid #e5e7eb;">
                 </div>
             </div>
         </div>
@@ -110,137 +857,1166 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const datasetId = {{ dataset.id }};
-        let steps = [];
-        let stepCounter = 0;
+        let nodes = [];
+        let currentDataset = null;
+        let currentNode = null;
+        let nodeCounter = 0;
 
-        function addStep(type) {
-            stepCounter++;
-            const stepNames = {
-                'missing_values': 'Handle Missing Values',
-                'scaling': 'Scale Features',
-                'encoding': 'Encode Categories',
-                'outliers': 'Remove Outliers'
-            };
-            
-            steps.push({
-                id: stepCounter,
-                type: type,
-                name: stepNames[type],
-                parameters: {}
+        // Load existing datasets on page load
+        async function loadExistingDatasets() {
+            try {
+                const response = await fetch('/api/datasets');
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    const select = document.getElementById('existingDatasetSelect');
+
+                    // Clear existing options except the first one
+                    select.innerHTML = '<option value="">Select existing dataset...</option>';
+
+                    // Add datasets to dropdown
+                    data.forEach(dataset => {
+                        const option = document.createElement('option');
+                        option.value = dataset.id;
+                        option.textContent = `${dataset.name} (${dataset.rows} rows × ${dataset.columns} cols)`;
+                        option.dataset.dataset = JSON.stringify(dataset);
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading datasets:', error);
+            }
+        }
+
+        // Handle dataset selection from dropdown
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExistingDatasets();
+
+            document.getElementById('existingDatasetSelect').addEventListener('change', (e) => {
+                const selectedOption = e.target.selectedOptions[0];
+                if (selectedOption.value) {
+                    const dataset = JSON.parse(selectedOption.dataset.dataset);
+                    loadDataset(dataset);
+                }
             });
-            
-            renderPipeline();
+        });
+
+        // Load selected dataset
+        function loadDataset(dataset) {
+            currentDataset = {
+                id: dataset.id,
+                name: dataset.name,
+                rows: dataset.rows,
+                columns: dataset.columns
+            };
+
+            // Update UI
+            document.getElementById('welcomeMessage')?.remove();
+            document.getElementById('datasetInfoBox').style.display = 'block';
+            document.getElementById('datasetName').textContent = dataset.name;
+            document.getElementById('datasetStats').textContent = `${dataset.rows} rows × ${dataset.columns} columns`;
+
+            showMessage(`Dataset "${dataset.name}" loaded successfully!`, 'success');
         }
 
-        function removeStep(id) {
-            steps = steps.filter(s => s.id !== id);
-            renderPipeline();
+        // Drag and Drop
+        function dragStart(event) {
+            event.dataTransfer.setData('nodeType', event.target.closest('.tool-item').dataset.type);
         }
 
-        function renderPipeline() {
-            const container = document.getElementById('pipelineSteps');
-            if (steps.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center py-4">Click on steps from the left to add them here</p>';
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            if (!currentDataset) {
+                showMessage('Please upload a dataset first!', 'error');
                 return;
             }
-            
-            container.innerHTML = steps.map((step, index) => `
-                <div class="pipeline-step">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${index + 1}. ${step.name}</strong>
-                        </div>
-                        <button class="btn btn-sm btn-danger" onclick="removeStep(${step.id})">
-                            <i class="fas fa-trash"></i>
+
+            const nodeType = event.dataTransfer.getData('nodeType');
+            const rect = event.target.closest('.canvas-container').getBoundingClientRect();
+            const x = event.clientX - rect.left + event.target.closest('.canvas-container').scrollLeft - 110;
+            const y = event.clientY - rect.top + event.target.closest('.canvas-container').scrollTop - 30;
+
+            createNode(nodeType, x, y);
+        }
+
+        // Upload Dataset
+        async function uploadDataset(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showMessage('Uploading dataset...', 'info');
+                const response = await fetch('/upload_dataset', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // The backend returns the dataset in the response
+                    currentDataset = {
+                        id: data.dataset_id,
+                        name: data.dataset_name || file.name,
+                        rows: data.rows || 0,
+                        columns: data.columns || 0
+                    };
+
+                    document.getElementById('welcomeMessage')?.remove();
+                    document.getElementById('datasetInfoBox').style.display = 'block';
+                    document.getElementById('datasetName').textContent = currentDataset.name;
+                    document.getElementById('datasetStats').textContent = `${currentDataset.rows} rows × ${currentDataset.columns} columns`;
+                    showMessage(`Dataset "${currentDataset.name}" loaded successfully!`, 'success');
+
+                    // Refresh the dropdown list to include the new dataset
+                    await loadExistingDatasets();
+                } else {
+                    showMessage('Failed to upload dataset: ' + (data.message || data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showMessage('Error uploading dataset: ' + error.message, 'error');
+            }
+        }
+
+        // Create Node
+        function createNode(type, x, y) {
+            const nodeId = ++nodeCounter;
+            const node = {
+                id: nodeId,
+                type: type,
+                x: x,
+                y: y,
+                status: 'pending',
+                config: {}
+            };
+
+            nodes.push(node);
+
+            const nodeTypes = {
+                'statistics': { title: 'Statistics', icon: 'fa-chart-bar', class: 'statistics' },
+                'visualization': { title: 'Visualization', icon: 'fa-chart-pie', class: 'visualization' },
+                'preprocessing': { title: 'Preprocessing', icon: 'fa-filter', class: 'preprocessing' },
+                'feature': { title: 'Feature Engineering', icon: 'fa-cogs', class: 'feature' },
+                'ml': { title: 'ML Model', icon: 'fa-brain', class: 'ml' },
+                'export': { title: 'Export Notebook', icon: 'fa-file-code', class: 'export' }
+            };
+
+            const nodeInfo = nodeTypes[type];
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'workflow-node';
+            nodeEl.id = `node-${nodeId}`;
+            nodeEl.style.left = `${x}px`;
+            nodeEl.style.top = `${y}px`;
+            nodeEl.draggable = true;
+            nodeEl.ondragstart = (e) => {
+                e.dataTransfer.setData('nodeId', nodeId);
+                nodeEl.classList.add('dragging');
+            };
+            nodeEl.ondragend = () => nodeEl.classList.remove('dragging');
+
+            nodeEl.innerHTML = `
+                <div class="node-header ${nodeInfo.class}">
+                    <i class="fas ${nodeInfo.icon}"></i>
+                    <span>${nodeInfo.title}</span>
+                </div>
+                <div class="node-body">
+                    <span class="node-status status-pending">Pending</span>
+                    <div class="node-actions">
+                        <button class="node-btn btn-run" onclick="runNode(${nodeId})">
+                            <i class="fas fa-play"></i> Run
+                        </button>
+                        <button class="node-btn btn-config" onclick="configureNode(${nodeId})">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="node-btn btn-delete" onclick="deleteNode(${nodeId})">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `;
+
+            document.getElementById('canvasContent').appendChild(nodeEl);
         }
 
-        async function savePipeline() {
-            const name = document.getElementById('pipelineName').value;
-            const description = document.getElementById('pipelineDesc').value;
-            
-            if (steps.length === 0) {
-                alert('Please add at least one step to the pipeline');
+        // Configure Node
+        function configureNode(nodeId) {
+            const node = nodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            currentNode = node;
+            let configHTML = '';
+
+            if (node.type === 'visualization') {
+                configHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Visualization Type</label>
+                        <select class="form-select" id="vizType">
+                            <option value="correlation">Correlation Heatmap</option>
+                            <option value="distribution">Distribution Plots</option>
+                            <option value="boxplot">Box Plots</option>
+                            <option value="scatter">Scatter Matrix</option>
+                        </select>
+                    </div>
+                `;
+            } else if (node.type === 'ml') {
+                configHTML = `
+                    <div class="mb-3">
+                        <label class="form-label">Problem Type</label>
+                        <select class="form-select" id="problemType">
+                            <option value="classification">Classification</option>
+                            <option value="regression">Regression</option>
+                        </select>
+                    </div>
+                `;
+            } else {
+                configHTML = '<p class="text-muted">No additional configuration needed for this node.</p>';
+            }
+
+            document.getElementById('configContent').innerHTML = configHTML;
+            new bootstrap.Modal(document.getElementById('configModal')).show();
+        }
+
+        function saveConfig() {
+            if (!currentNode) return;
+
+            if (currentNode.type === 'visualization') {
+                currentNode.config.visualizationType = document.getElementById('vizType')?.value || 'all';
+            } else if (currentNode.type === 'ml') {
+                currentNode.config.problemType = document.getElementById('problemType')?.value || 'classification';
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+            showMessage('Configuration saved successfully!', 'success');
+        }
+
+        // Run Node
+        async function runNode(nodeId) {
+            const node = nodes.find(n => n.id === nodeId);
+            if (!node || !currentDataset) {
+                showMessage('Dataset not loaded!', 'error');
                 return;
             }
-            
+
+            updateNodeStatus(nodeId, 'running');
+
             try {
-                const response = await fetch(`/workflow/api/${datasetId}/create_pipeline`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({name, description, steps})
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    alert('Pipeline saved successfully!');
-                } else {
-                    alert('Error: ' + data.message);
+                let result;
+                if (node.type === 'statistics') {
+                    result = await generateStatistics();
+                } else if (node.type === 'visualization') {
+                    result = await generateVisualization(node.config);
+                } else if (node.type === 'preprocessing') {
+                    result = await runPreprocessing();
+                } else if (node.type === 'feature') {
+                    result = await runFeatureEngineering();
+                } else if (node.type === 'ml') {
+                    result = await trainMLModel(node.config);
+                } else if (node.type === 'export') {
+                    result = await exportNotebook();
                 }
+
+                updateNodeStatus(nodeId, 'completed');
+                showResult(node.type, result);
             } catch (error) {
-                alert('Error saving pipeline: ' + error.message);
+                updateNodeStatus(nodeId, 'error');
+                showMessage(`Error in ${node.type} node: ${error.message}`, 'error');
             }
         }
 
-        async function executePipeline() {
-            if (steps.length === 0) {
-                alert('Please add steps to the pipeline first');
-                return;
+        async function generateStatistics() {
+            const response = await fetch(`/workflow/api/statistics/${currentDataset.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error);
+            return data;
+        }
+
+        async function generateVisualization(config) {
+            const response = await fetch(`/workflow/api/visualization/${currentDataset.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error);
+            return data;
+        }
+
+        async function runPreprocessing() {
+            const response = await fetch(`/workflow/api/preprocessing/${currentDataset.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Preprocessing failed');
+            return data;
+        }
+
+        async function runFeatureEngineering() {
+            const response = await fetch(`/workflow/api/feature-engineering/${currentDataset.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Feature engineering failed');
+            return data;
+        }
+
+        async function trainMLModel(config) {
+            const response = await fetch(`/ml/api/analyze/${currentDataset.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error);
+            return data;
+        }
+
+        async function exportNotebook() {
+            const response = await fetch(`/workflow/api/export-notebook/${currentDataset.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodes: nodes })
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error);
+
+            // Download notebook
+            const blob = new Blob([JSON.stringify(data.notebook, null, 2)], {
+                type: 'application/x-ipynb+json'
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename || 'workflow.ipynb';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            return { message: 'Notebook downloaded successfully!' };
+        }
+
+        function updateNodeStatus(nodeId, status) {
+            const node = nodes.find(n => n.id === nodeId);
+            if (node) node.status = status;
+
+            const nodeEl = document.getElementById(`node-${nodeId}`);
+            if (nodeEl) {
+                const statusEl = nodeEl.querySelector('.node-status');
+                statusEl.className = `node-status status-${status}`;
+                statusEl.innerHTML = status === 'running' ? '<span class="spinner"></span> Running...' : status.charAt(0).toUpperCase() + status.slice(1);
             }
-            
-            document.getElementById('results').innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p class="mt-2">Executing...</p></div>';
-            
-            try {
-                // First save the pipeline
-                const name = document.getElementById('pipelineName').value;
-                const description = document.getElementById('pipelineDesc').value;
-                
-                const saveResponse = await fetch(`/workflow/api/${datasetId}/create_pipeline`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({name, description, steps})
-                });
-                
-                const saveData = await saveResponse.json();
-                if (!saveData.success) {
-                    throw new Error(saveData.message);
-                }
-                
-                const pipelineId = saveData.pipeline.id;
-                
-                // Then execute it
-                const execResponse = await fetch(`/workflow/api/pipeline/${pipelineId}/execute`, {
-                    method: 'POST'
-                });
-                
-                const execData = await execResponse.json();
-                if (execData.success) {
-                    document.getElementById('results').innerHTML = `
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle"></i> Success!
-                        </div>
-                        <p><strong>Input:</strong> ${execData.execution_record.input_shape[0]} × ${execData.execution_record.input_shape[1]}</p>
-                        <p><strong>Output:</strong> ${execData.execution_record.output_shape[0]} × ${execData.execution_record.output_shape[1]}</p>
-                        <p><strong>Steps:</strong> ${execData.execution_record.execution_log.length}</p>
-                    `;
-                } else {
-                    document.getElementById('results').innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-times-circle"></i> Failed: ${execData.message}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('results').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-times-circle"></i> Error: ${error.message}
+        }
+
+        function showResult(type, data) {
+            const resultsContent = document.getElementById('resultsContent');
+            if (resultsContent.querySelector('.fa-inbox')) {
+                resultsContent.innerHTML = '';
+            }
+
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+
+            let content = '';
+            const iconMap = {
+                statistics: 'fa-chart-pie',
+                visualization: 'fa-chart-bar',
+                preprocessing: 'fa-broom',
+                feature: 'fa-cogs',
+                ml: 'fa-brain',
+                export: 'fa-file-code'
+            };
+            const icon = iconMap[type] || 'fa-check-circle';
+
+            if (type === 'statistics') {
+                content = formatStatisticsResult(data);
+            } else if (type === 'visualization') {
+                content = formatVisualizationResult(data);
+            } else if (type === 'preprocessing') {
+                content = formatPreprocessingResult(data);
+            } else if (type === 'feature') {
+                content = formatFeatureEngineeringResult(data);
+            } else if (type === 'ml') {
+                content = formatMLResult(data);
+            } else {
+                content = `<div class="result-data"><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+            }
+
+            resultItem.innerHTML = `
+                <div class="result-time">${new Date().toLocaleTimeString()}</div>
+                <div class="result-message"><i class="fas ${icon}" style="color:#667eea;"></i><span>${type.charAt(0).toUpperCase() + type.slice(1)} completed</span></div>
+                ${content}
+            `;
+
+            resultsContent.insertBefore(resultItem, resultsContent.firstChild);
+
+            // Auto-open results panel
+            document.getElementById('resultsPanel').classList.add('open');
+            document.getElementById('toggleIcon').className = 'fas fa-chevron-right';
+        }
+
+        function formatStatisticsResult(data) {
+            let html = '<div class="statistics-result">';
+
+            // Dataset Info
+            if (data.dataset_info) {
+                html += `
+                    <div class="stat-section">
+                        <h4>Dataset Information</h4>
+                        <table class="stats-table">
+                            <tr><td><strong>Rows:</strong></td><td>${data.dataset_info.rows}</td></tr>
+                            <tr><td><strong>Columns:</strong></td><td>${data.dataset_info.columns}</td></tr>
+                            <tr><td><strong>Memory:</strong></td><td>${data.dataset_info.memory_usage?.toFixed(2)} MB</td></tr>
+                        </table>
                     </div>
                 `;
             }
+
+            // Missing Data
+            if (data.missing_data && Object.keys(data.missing_data).length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4>Missing Data</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Missing Count</th>
+                                        <th>Missing %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                for (const [col, missing] of Object.entries(data.missing_data)) {
+                    html += `
+                        <tr>
+                            <td><strong>${col}</strong></td>
+                            <td>${missing.count}</td>
+                            <td>${missing.percentage?.toFixed(2)}%</td>
+                        </tr>
+                    `;
+                }
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Data Types
+            if (data.data_types && Object.keys(data.data_types).length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4>Data Types</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                for (const [col, dtype] of Object.entries(data.data_types)) {
+                    html += `
+                        <tr>
+                            <td><strong>${col}</strong></td>
+                            <td>${dtype}</td>
+                        </tr>
+                    `;
+                }
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Numeric Statistics
+            if (data.numeric_stats && Object.keys(data.numeric_stats).length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4>Numeric Columns</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Mean</th>
+                                        <th>Std</th>
+                                        <th>Min</th>
+                                        <th>Max</th>
+                                        <th>Median</th>
+                                        <th>Range</th>
+                                        <th>IQR</th>
+                                        <th>CV (%)</th>
+                                        <th>Skew</th>
+                                        <th>Kurtosis</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                for (const [col, stats] of Object.entries(data.numeric_stats)) {
+                    html += `
+                        <tr>
+                            <td><strong>${col}</strong></td>
+                            <td>${stats.mean != null ? stats.mean.toFixed(2) : '—'}</td>
+                            <td>${stats.std != null ? stats.std.toFixed(2) : '—'}</td>
+                            <td>${stats.min != null ? stats.min.toFixed(2) : '—'}</td>
+                            <td>${stats.max != null ? stats.max.toFixed(2) : '—'}</td>
+                            <td>${stats.median != null ? stats.median.toFixed(2) : '—'}</td>
+                            <td>${stats.range != null ? stats.range.toFixed(2) : '—'}</td>
+                            <td>${stats.iqr != null ? stats.iqr.toFixed(2) : '—'}</td>
+                            <td>${stats.cv != null ? stats.cv.toFixed(2) : '—'}</td>
+                            <td>${stats.skewness != null ? stats.skewness.toFixed(3) : '—'}</td>
+                            <td>${stats.kurtosis != null ? stats.kurtosis.toFixed(3) : '—'}</td>
+                        </tr>
+                    `;
+                }
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Percentiles table
+            if (data.numeric_stats && Object.keys(data.numeric_stats).length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4>Percentiles</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>1%</th><th>5%</th><th>10%</th><th>90%</th><th>95%</th><th>99%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                for (const [col, stats] of Object.entries(data.numeric_stats)) {
+                    const p = stats.percentiles || {};
+                    html += `
+                        <tr>
+                            <td><strong>${col}</strong></td>
+                            <td>${p['1%'] != null ? p['1%'].toFixed(2) : '—'}</td>
+                            <td>${p['5%'] != null ? p['5%'].toFixed(2) : '—'}</td>
+                            <td>${p['10%'] != null ? p['10%'].toFixed(2) : '—'}</td>
+                            <td>${p['90%'] != null ? p['90%'].toFixed(2) : '—'}</td>
+                            <td>${p['95%'] != null ? p['95%'].toFixed(2) : '—'}</td>
+                            <td>${p['99%'] != null ? p['99%'].toFixed(2) : '—'}</td>
+                        </tr>
+                    `;
+                }
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Categorical Statistics
+            if (data.categorical_stats && Object.keys(data.categorical_stats).length > 0) {
+                html += `<div class="stat-section"><h4>Categorical Columns</h4>`;
+                for (const [col, stats] of Object.entries(data.categorical_stats)) {
+                    html += `
+                        <div class="categorical-stat">
+                            <strong>${col}:</strong> ${stats.unique} unique values, Mode: ${stats.mode}
+                            <div class="mt-1" style="font-size: 11px; color: #444;">
+                                Top values:
+                                ${stats.top_values ? Object.entries(stats.top_values).map(([k,v]) => `${k} (${v})`).join(', ') : 'N/A'}
+                            </div>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function formatVisualizationResult(data) {
+            let html = '<div class="visualization-result">';
+
+            const imgs = data.images || (data.image ? [{ title: 'Visualization', data: data.image }] : []);
+
+            if (imgs.length) {
+                html += '<div class="viz-gallery">';
+                imgs.forEach((img, idx) => {
+                    html += `
+                        <div class="viz-item">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#667eea;"></span>
+                                <h5 style="margin:0;">${img.title || 'Visualization ' + (idx + 1)}</h5>
+                            </div>
+                            <a href="#" data-full-image="data:image/png;base64,${img.data}" title="Open full size">
+                                <img src="data:image/png;base64,${img.data}" alt="${img.title}" class="result-image">
+                            </a>
+                            <div style="margin-top:8px; font-size:12px; color:#555;">
+                                <a href="data:image/png;base64,${img.data}" download="${(img.title || 'visualization')}.png" style="text-decoration:none;">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="text-muted">No visualizations generated.</p>';
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function formatPreprocessingResult(data) {
+            let html = '<div class="preprocessing-result">';
+
+            if (!data.result) {
+                return '<p>No preprocessing results available</p>';
+            }
+
+            const result = data.result;
+
+            // Data Quality Score Header with gradient background
+            html += `
+                <div class="stat-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 10px 0; color: white;"><i class="fas fa-shield-alt"></i> Data Quality Score</h3>
+                    <h4 style="margin: 0; color: white; font-size: 32px;">${result.data_quality_score ? result.data_quality_score.toFixed(1) : 'N/A'}/100</h4>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.95;">Overall data health after preprocessing</p>
+                </div>
+            `;
+
+            // Data Shape Changes
+            html += `
+                <div class="stat-section">
+                    <h4><i class="fas fa-database"></i> Dataset Changes</h4>
+                    <table class="stats-table">
+                        <tr><td><strong>Initial Shape:</strong></td><td>${result.initial_shape[0]} rows × ${result.initial_shape[1]} columns</td></tr>
+                        <tr><td><strong>Final Shape:</strong></td><td>${result.final_shape[0]} rows × ${result.final_shape[1]} columns</td></tr>
+                        <tr><td><strong>Rows Removed:</strong></td><td style="color: ${result.rows_removed > 0 ? '#e74c3c' : '#27ae60'};">${result.rows_removed}</td></tr>
+                    </table>
+                </div>
+            `;
+
+            // Missing Values Handling
+            html += `
+                <div class="stat-section">
+                    <h4><i class="fas fa-fill-drip"></i> Missing Values</h4>
+                    <table class="stats-table">
+                        <tr><td><strong>Initial Nulls:</strong></td><td>${result.initial_nulls}</td></tr>
+                        <tr><td><strong>Final Nulls:</strong></td><td style="color: ${result.final_nulls === 0 ? '#27ae60' : '#e74c3c'};">${result.final_nulls}</td></tr>
+                        <tr><td><strong>Columns Handled:</strong></td><td>${result.missing_cols_handled ? result.missing_cols_handled.length : 0}</td></tr>
+                    </table>
+                    ${result.missing_cols_handled && result.missing_cols_handled.length > 0 ? `
+                        <div style="margin-top: 10px; background: #f8f9ff; padding: 10px; border-radius: 6px;">
+                            <strong>Affected Columns:</strong>
+                            <div style="margin-top: 5px; font-size: 13px;">
+                                ${result.missing_cols_handled.map(col => `<span style="display: inline-block; background: #667eea; color: white; padding: 3px 8px; border-radius: 4px; margin: 2px;">${col}</span>`).join(' ')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Duplicates Removed
+            if (result.duplicates_removed > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-copy"></i> Duplicates Removed</h4>
+                        <p style="font-size: 20px; font-weight: bold; color: #667eea; margin: 10px 0;">${result.duplicates_removed} duplicate rows removed</p>
+                    </div>
+                `;
+            }
+
+            // Outliers Handled
+            if (result.outliers_handled && result.outliers_handled.length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-chart-line"></i> Outliers Handled</h4>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Column</th>
+                                    <th>Outliers</th>
+                                    <th>Lower Bound</th>
+                                    <th>Upper Bound</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                result.outliers_handled.forEach(outlier => {
+                    html += `
+                        <tr>
+                            <td><strong>${outlier.column}</strong></td>
+                            <td>${outlier.outliers_count}</td>
+                            <td>${outlier.lower_bound.toFixed(2)}</td>
+                            <td>${outlier.upper_bound.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Data Type Optimizations
+            if (result.dtype_changes && result.dtype_changes.length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-code"></i> Data Type Optimizations</h4>
+                        <div style="background: #f8f9ff; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px;">
+                            ${result.dtype_changes.map(change => `<div style="padding: 3px 0;">${change}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Preprocessing Steps (Collapsible)
+            if (result.preprocessing_steps && result.preprocessing_steps.length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <details style="cursor: pointer;">
+                            <summary style="font-weight: bold; padding: 8px; background: #f8f9ff; border-radius: 4px;">
+                                <i class="fas fa-list"></i> Preprocessing Steps (${result.preprocessing_steps.length} steps)
+                            </summary>
+                            <div style="max-height: 300px; overflow-y: auto; background: #f8f9ff; padding: 12px; margin-top: 10px; border-radius: 6px;">
+                                <ol style="margin: 0; padding-left: 20px;">
+                                    ${result.preprocessing_steps.map(step => `<li style="padding: 5px 0; font-size: 13px;">${step}</li>`).join('')}
+                                </ol>
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function formatFeatureEngineeringResult(data) {
+            let html = '<div class="feature-result">';
+
+            if (!data.recommendation) {
+                return '<p>No feature selection results available</p>';
+            }
+
+            const rec = data.recommendation;
+            const best = rec.best_method_details;
+
+            // Recommendation Header
+            if (rec.best_method) {
+                html += `
+                    <div class="stat-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h3 style="margin: 0 0 10px 0; color: white;"><i class="fas fa-trophy"></i> Recommended Method</h3>
+                        <h4 style="margin: 0; color: white; font-size: 20px;">${rec.best_method.replace(/_/g, ' ').toUpperCase()}</h4>
+                        <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.95;">${rec.recommendation_reason}</p>
+                    </div>
+                `;
+            }
+
+            // Best Method Details
+            if (best && !best.error) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-chart-line"></i> Best Method Performance</h4>
+                        <table class="stats-table">
+                            <tr><td><strong>Method:</strong></td><td>${best.method}</td></tr>
+                            <tr><td><strong>Selected Features:</strong></td><td>${best.n_features} / ${rec.original_features}</td></tr>
+                            <tr><td><strong>CV Score:</strong></td><td>${best.score ? best.score.toFixed(4) : 'N/A'}</td></tr>
+                            <tr><td><strong>Scoring Metric:</strong></td><td>${best.scoring_metric || 'N/A'}</td></tr>
+                            <tr><td><strong>CV Folds:</strong></td><td>${best.cv_folds || 5}</td></tr>
+                            <tr><td><strong>Composite Score:</strong></td><td>${best.composite_score ? best.composite_score.toFixed(4) : 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                `;
+
+                // Selected Features List
+                if (best.selected_features && best.selected_features.length > 0) {
+                    html += `
+                        <div class="stat-section">
+                            <h4><i class="fas fa-list-check"></i> Selected Features (${best.selected_features.length})</h4>
+                            <div style="max-height: 250px; overflow-y: auto; background: #f8f9ff; padding: 12px; border-radius: 6px;">
+                                <ul style="columns: 2; list-style: none; padding: 0; margin: 0;">
+                                    ${best.selected_features.map((f, i) => `<li style="padding: 5px 0; font-size: 13px;"><i class="fas fa-check-circle" style="color: #667eea; margin-right: 6px;"></i><strong>${i+1}.</strong> ${f}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Score Breakdown
+                if (best.score_breakdown) {
+                    html += `
+                        <div class="stat-section">
+                            <h4><i class="fas fa-calculator"></i> Composite Score Breakdown</h4>
+                            <table class="stats-table">
+                                <tr><td><strong>Performance Score:</strong></td><td>${best.score_breakdown.performance.toFixed(4)} (50% weight)</td></tr>
+                                <tr><td><strong>Reduction Score:</strong></td><td>${best.score_breakdown.reduction.toFixed(4)} (30% weight)</td></tr>
+                                <tr><td><strong>Reliability Score:</strong></td><td>${best.score_breakdown.reliability.toFixed(4)} (20% weight)</td></tr>
+                            </table>
+                        </div>
+                    `;
+                }
+            }
+
+            // All Methods Comparison
+            if (rec.all_results) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-balance-scale"></i> All Methods Comparison</h4>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>Features</th>
+                                    <th>CV Score</th>
+                                    <th>Composite</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                for (const [methodName, methodData] of Object.entries(rec.all_results)) {
+                    const isBest = methodName === rec.best_method;
+                    const rowStyle = isBest ? 'background: #f0f9ff; font-weight: bold;' : '';
+
+                    if (methodData.error) {
+                        html += `
+                            <tr style="${rowStyle}">
+                                <td>${isBest ? '⭐ ' : ''}${methodData.method || methodName.replace(/_/g, ' ')}</td>
+                                <td colspan="3" style="color: #e74c3c;">Error: ${methodData.error}</td>
+                            </tr>
+                        `;
+                    } else {
+                        html += `
+                            <tr style="${rowStyle}">
+                                <td>${isBest ? '⭐ ' : ''}${methodData.method}</td>
+                                <td>${methodData.n_features} / ${rec.original_features}</td>
+                                <td>${methodData.score ? methodData.score.toFixed(4) : 'N/A'}</td>
+                                <td>${methodData.composite_score ? methodData.composite_score.toFixed(4) : 'N/A'}</td>
+                            </tr>
+                        `;
+                    }
+                }
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Detailed Logs (collapsible)
+            if (rec.detailed_logs && rec.detailed_logs.length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <details style="cursor: pointer;">
+                            <summary style="font-weight: bold; padding: 8px; background: #f8f9ff; border-radius: 4px;">
+                                <i class="fas fa-file-alt"></i> Detailed Logs (${rec.detailed_logs.length} entries)
+                            </summary>
+                            <div style="max-height: 300px; overflow-y: auto; background: #f8f9ff; padding: 12px; margin-top: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; white-space: pre-wrap;">
+${rec.detailed_logs.join('\n')}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function formatMLResult(data) {
+            let html = '<div class="ml-result">';
+
+            if (!data.best_model || !data.recommendations) {
+                return '<p>No ML analysis results available</p>';
+            }
+
+            const bestModel = data.best_model;
+            const recommendations = data.recommendations || [];
+            const analysis = data.dataset_analysis || {};
+            const explanations = data.explanations || {};
+
+            // Best Model Header with gradient background
+            html += `
+                <div class="stat-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 10px 0; color: white;"><i class="fas fa-trophy"></i> Best Model Recommendation</h3>
+                    <h4 style="margin: 0; color: white; font-size: 20px;">${bestModel.name}</h4>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.95;">Suitability Score: ${bestModel.score.toFixed(1)}%</p>
+                </div>
+            `;
+
+            // Dataset Analysis
+            if (analysis.task_type) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-chart-line"></i> Dataset Analysis</h4>
+                        <table class="stats-table">
+                            <tr><td><strong>Task Type:</strong></td><td>${analysis.task_type}</td></tr>
+                            ${analysis.n_samples ? `<tr><td><strong>Samples:</strong></td><td>${analysis.n_samples}</td></tr>` : ''}
+                            ${analysis.n_features ? `<tr><td><strong>Features:</strong></td><td>${analysis.n_features}</td></tr>` : ''}
+                            ${analysis.n_classes ? `<tr><td><strong>Classes:</strong></td><td>${analysis.n_classes}</td></tr>` : ''}
+                            ${analysis.class_balance ? `<tr><td><strong>Class Balance:</strong></td><td>${analysis.class_balance}</td></tr>` : ''}
+                            ${analysis.has_missing_values !== undefined ? `<tr><td><strong>Missing Values:</strong></td><td>${analysis.has_missing_values ? 'Yes' : 'No'}</td></tr>` : ''}
+                            ${analysis.sampled ? `<tr><td><strong>Sampling:</strong></td><td>Sampled 1,000 rows from ${analysis.original_rows || 'N/A'}</td></tr>` : ''}
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Best Model Performance
+            if (bestModel.performance) {
+                const perf = bestModel.performance;
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-star"></i> Best Model Performance</h4>
+                        <table class="stats-table">
+                            ${perf.mean_score !== undefined ? `<tr><td><strong>Cross-Val Score:</strong></td><td>${perf.mean_score.toFixed(4)}</td></tr>` : ''}
+                            ${perf.std_score !== undefined ? `<tr><td><strong>Std Deviation:</strong></td><td>${perf.std_score.toFixed(4)}</td></tr>` : ''}
+                            ${perf.training_time !== undefined ? `<tr><td><strong>Training Time:</strong></td><td>${perf.training_time.toFixed(3)}s</td></tr>` : ''}
+                            ${perf.prediction_time !== undefined ? `<tr><td><strong>Prediction Time:</strong></td><td>${perf.prediction_time.toFixed(3)}s</td></tr>` : ''}
+                            ${perf.f1_score !== undefined ? `<tr><td><strong>F1:</strong></td><td>${perf.f1_score.toFixed(4)}</td></tr>` : ''}
+                            ${perf.rmse !== undefined ? `<tr><td><strong>RMSE:</strong></td><td>${perf.rmse.toFixed(4)}</td></tr>` : ''}
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Why This Model is Best
+            if (bestModel.why_best) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-lightbulb"></i> Why This Model?</h4>
+                        <p style="background: #f8f9ff; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.6;">${bestModel.why_best}</p>
+                    </div>
+                `;
+            }
+
+            // All Model Recommendations
+            if (recommendations.length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-balance-scale"></i> All Model Recommendations</h4>
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>CV Score</th>
+                                    <th>Suitability</th>
+                                    <th>Train Time</th>
+                                    <th>Pred Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                recommendations.forEach((rec, idx) => {
+                    const isBest = rec.model === bestModel.name;
+                    const rowStyle = isBest ? 'background: #f0f9ff; font-weight: bold;' : '';
+                    const perf = rec.performance || {};
+
+                    html += `
+                        <tr style="${rowStyle}">
+                            <td>${isBest ? '⭐ ' : ''}${rec.model}</td>
+                            <td>${perf.mean_score !== undefined ? perf.mean_score.toFixed(4) : 'N/A'}</td>
+                            <td>${rec.suitability_score !== undefined ? rec.suitability_score.toFixed(1) + '%' : 'N/A'}</td>
+                            <td>${perf.training_time !== undefined ? perf.training_time.toFixed(3) + 's' : 'N/A'}</td>
+                            <td>${perf.prediction_time !== undefined ? perf.prediction_time.toFixed(3) + 's' : 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Detailed Justifications (collapsible)
+            const topRecommendations = recommendations.slice(0, 3);
+            if (topRecommendations.length > 0 && topRecommendations.some(r => r.justification)) {
+                html += `
+                    <div class="stat-section">
+                        <details style="cursor: pointer;">
+                            <summary style="font-weight: bold; padding: 8px; background: #f8f9ff; border-radius: 4px;">
+                                <i class="fas fa-file-alt"></i> Detailed Model Justifications
+                            </summary>
+                            <div style="margin-top: 10px;">
+                `;
+
+                topRecommendations.forEach((rec, idx) => {
+                    if (rec.justification) {
+                        html += `
+                            <div style="margin-bottom: 15px; padding: 10px; background: #f8f9ff; border-radius: 6px;">
+                                <h5 style="margin: 0 0 8px 0; color: #667eea;">${idx + 1}. ${rec.model}</h5>
+                                <p style="margin: 0; font-size: 13px; line-height: 1.6;">${rec.justification}</p>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += `
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
+
+            // Explanations (if available)
+            if (explanations.summary) {
+                html += `
+                    <div class="stat-section">
+                        <details style="cursor: pointer;">
+                            <summary style="font-weight: bold; padding: 8px; background: #f8f9ff; border-radius: 4px;">
+                                <i class="fas fa-info-circle"></i> AI-Generated Explanations
+                            </summary>
+                            <div style="margin-top: 10px; background: #f8f9ff; padding: 12px; border-radius: 6px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">
+${explanations.summary}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
+
+            // Tuning hints
+            const tunable = recommendations.filter(r => r.can_tune);
+            if (tunable.length > 0) {
+                html += `
+                    <div class="stat-section">
+                        <h4><i class="fas fa-sliders-h"></i> Models Eligible for Tuning</h4>
+                        <ul style="padding-left: 18px; margin: 0;">
+                            ${tunable.map(t => `<li>${t.model}</li>`).join('')}
+                        </ul>
+                        <p style="font-size: 12px; color: #555; margin-top: 8px;">(Tuning is available in the dedicated ML module.)</p>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        // Lightbox for visualization images
+        document.addEventListener('click', function(e) {
+            const anchor = e.target.closest('a[data-full-image]');
+            if (!anchor) return;
+            e.preventDefault();
+            const src = anchor.getAttribute('data-full-image');
+            const modalImg = document.getElementById('fullImageModalImg');
+            if (modalImg) {
+                modalImg.src = src;
+                const modal = new bootstrap.Modal(document.getElementById('fullImageModal'));
+                modal.show();
+            }
+        });
+
+        function deleteNode(nodeId) {
+            nodes = nodes.filter(n => n.id !== nodeId);
+            document.getElementById(`node-${nodeId}`)?.remove();
+        }
+
+        function clearWorkflow() {
+            if (confirm('Clear all nodes?')) {
+                nodes = [];
+                document.querySelectorAll('.workflow-node').forEach(el => el.remove());
+                showMessage('Workflow cleared', 'info');
+            }
+        }
+
+        async function executeWorkflow() {
+            if (nodes.length === 0) {
+                showMessage('No nodes in workflow!', 'error');
+                return;
+            }
+
+            showMessage('Executing workflow...', 'info');
+            for (const node of nodes) {
+                await runNode(node.id);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            showMessage('Workflow execution completed!', 'success');
+        }
+
+        async function exportWorkflow() {
+            if (!currentDataset) {
+                showMessage('Please upload a dataset first!', 'error');
+                return;
+            }
+
+            try {
+                const result = await exportNotebook();
+                showMessage(result.message, 'success');
+            } catch (error) {
+                showMessage('Error exporting notebook: ' + error.message, 'error');
+            }
+        }
+
+        function toggleResults() {
+            const panel = document.getElementById('resultsPanel');
+            const icon = document.getElementById('toggleIcon');
+            panel.classList.toggle('open');
+            icon.className = panel.classList.contains('open') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+        }
+
+        function clearResults() {
+            document.getElementById('resultsContent').innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
+                    <i class="fas fa-inbox" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <p>No results yet. Run nodes to see output here.</p>
+                </div>
+            `;
+        }
+
+        function showMessage(message, type) {
+            const colors = {
+                'success': '#d4edda',
+                'error': '#f8d7da',
+                'info': '#d1ecf1'
+            };
+
+            const alertDiv = document.createElement('div');
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 90px;
+                right: 30px;
+                background: ${colors[type] || colors.info};
+                color: #333;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 2000;
+                font-size: 14px;
+                max-width: 350px;
+            `;
+            alertDiv.textContent = message;
+
+            document.body.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 4000);
         }
     </script>
 </body>

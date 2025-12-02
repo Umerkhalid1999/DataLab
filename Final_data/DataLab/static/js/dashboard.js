@@ -246,15 +246,42 @@ function initializeUpload() {
         };
 
         xhr.onload = function() {
+            uploadProgress.classList.add('d-none');
+
             if (xhr.status === 200) {
                 try {
                     const response = JSON.parse(xhr.responseText);
 
                     if (response.success) {
-                        handleUploadSuccess(response);
+                        // Show success message
+                        uploadMessage.innerHTML = `
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        ${response.message || 'Dataset uploaded successfully!'}
+                                    </div>
+                                    <div>
+                                        <a href="/visualization/${response.dataset_id}" class="btn btn-sm btn-primary me-2">
+                                            <i class="fas fa-chart-bar me-1"></i>Visualize
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                                            <i class="fas fa-redo me-1"></i>Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        uploadMessage.classList.remove('d-none', 'alert-danger');
+                        uploadMessage.classList.add('alert-success');
+
+                        // Auto-refresh after 3 seconds
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 3000);
                     } else {
                         // Show error message
-                        uploadMessage.textContent = response.message;
+                        uploadMessage.textContent = response.message || 'Upload failed';
                         uploadMessage.classList.remove('d-none', 'alert-success');
                         uploadMessage.classList.add('alert-danger');
                     }
@@ -270,6 +297,9 @@ function initializeUpload() {
                 uploadMessage.classList.remove('d-none', 'alert-success');
                 uploadMessage.classList.add('alert-danger');
             }
+
+            // Reset file input
+            fileInput.value = '';
         };
 
         xhr.onerror = function() {
@@ -306,35 +336,65 @@ function initializeSearch() {
 
 // Initialize delete dataset functionality
 function initializeDeleteActions() {
-    const deleteButtons = document.querySelectorAll('.delete-dataset');
     const confirmDeleteBtn = document.getElementById('confirmDelete');
     const deleteModal = document.getElementById('deleteDatasetModal');
+    const deleteDatasetName = document.getElementById('deleteDatasetName');
 
-    if (!deleteButtons.length || !confirmDeleteBtn || !deleteModal) return;
+    if (!confirmDeleteBtn || !deleteModal) return;
 
     let currentDatasetId = null;
+    let currentDatasetCard = null;
+    let currentDatasetName = 'this dataset';
 
-    // Set up event listeners for delete buttons
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            currentDatasetId = this.getAttribute('data-id');
-            const modal = new bootstrap.Modal(deleteModal);
-            modal.show();
-        });
+    // Ensure every dropdown has a delete option (covers cached/older HTML)
+    document.querySelectorAll('.dataset-card').forEach(card => {
+        const menu = card.querySelector('.dropdown-menu');
+        if (!menu) return;
+        if (menu.querySelector('.delete-dataset')) return;
+
+        const datasetId = card.getAttribute('data-id');
+        const datasetName = card.getAttribute('data-name') || (card.querySelector('h6')?.textContent?.trim()) || 'this dataset';
+
+        const divider = document.createElement('li');
+        divider.innerHTML = '<hr class="dropdown-divider">';
+        const li = document.createElement('li');
+        li.innerHTML = `<a class="dropdown-item text-danger delete-dataset" href="#" data-id="${datasetId}" data-name="${datasetName}"><i class="fas fa-trash-alt me-2"></i>Remove Dataset</a>`;
+
+        menu.appendChild(divider);
+        menu.appendChild(li);
+    });
+
+    // Event delegation for any delete-dataset trigger (works on dynamically added cards)
+    document.addEventListener('click', function(e) {
+        const trigger = e.target.closest('.delete-dataset');
+        if (!trigger) return;
+
+        e.preventDefault();
+        currentDatasetId = trigger.getAttribute('data-id');
+        currentDatasetName = trigger.getAttribute('data-name') || 'this dataset';
+        currentDatasetCard = trigger.closest('.dataset-card');
+
+        if (deleteDatasetName) {
+            deleteDatasetName.textContent = currentDatasetName;
+        }
+
+        const modal = new bootstrap.Modal(deleteModal);
+        modal.show();
     });
 
     // Confirm delete action
     confirmDeleteBtn.addEventListener('click', function() {
         if (!currentDatasetId) return;
 
-        // Create and append CSRF token
-        const formData = new FormData();
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.textContent = 'Deleting...';
 
         // Send delete request
         fetch(`/delete_dataset/${currentDatasetId}`, {
-            method: 'POST',
-            body: formData
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
         .then(response => {
             if (!response.ok) {
@@ -344,17 +404,32 @@ function initializeDeleteActions() {
         })
         .then(data => {
             if (data.success) {
-                // Hide modal and refresh page
+                // Hide modal and update UI optimistically
                 const modal = bootstrap.Modal.getInstance(deleteModal);
                 if (modal) modal.hide();
-                window.location.reload();
+                if (currentDatasetCard) {
+                    currentDatasetCard.parentElement.remove();
+                }
+
+                // Show toast message
+                showToast(data.message || `Deleted ${currentDatasetName}`, 'success', 3000);
+
+                // If no datasets remain, reload to refresh empty state
+                const remaining = document.querySelectorAll('.dataset-card');
+                if (!remaining.length) {
+                    window.location.reload();
+                }
             } else {
-                alert('Error: ' + data.message);
+                showToast('Error: ' + (data.message || 'Could not delete dataset'), 'danger');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while deleting the dataset.');
+            showToast('An error occurred while deleting the dataset.', 'danger');
+        })
+        .finally(() => {
+            confirmDeleteBtn.disabled = false;
+            confirmDeleteBtn.textContent = 'Delete';
         });
     });
 }
@@ -599,47 +674,14 @@ function showToast(message, type = 'info', duration = 5000) {
     });
 }
 
-// Enhanced upload success with better integration
-function handleUploadSuccess(response) {
-    // Show success message with quality score info
-    const dataset = response.dataset;
-    const qualityInfo = dataset.quality_score ? `
-        <div class="mt-2 p-2 bg-light rounded">
-            <strong>Quality Score: ${dataset.quality_score}%</strong>
-            <div class="small text-muted">
-                Rows: ${dataset.rows} | Columns: ${dataset.columns}
-            </div>
-        </div>
-    ` : '';
-    
-    uploadMessage.innerHTML = `
-        <div>
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-check-circle me-2"></i>
-                    ${response.message}
-                </div>
-                <div>
-                    <a href="/visualization/${response.dataset_id}" class="btn btn-sm btn-primary me-2">
-                        <i class="fas fa-chart-bar me-1"></i>Visualize
-                    </a>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
-                        <i class="fas fa-redo me-1"></i>Refresh
-                    </button>
-                </div>
-            </div>
-            ${qualityInfo}
-        </div>
-    `;
-    uploadMessage.classList.remove('d-none', 'alert-danger');
-    uploadMessage.classList.add('alert-success');
+// Display intelligent cleaning results
+function displayIntelligentResults(data) {
+    const resultsDiv = document.getElementById('cleaningResults');
+    if (!resultsDiv) return;
 
-    // Auto-refresh after 5 seconds
-    setTimeout(function() {
-        if (document.contains(uploadMessage)) {
-            window.location.reload();
-        }
-    }, 5000);
+    resultsDiv.classList.remove('d-none');
+
+    displayCleaningResults(data);
 }
 
 

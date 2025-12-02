@@ -1,5 +1,5 @@
 # Dockerfile for deploying the Flask DataLab app
-FROM python:3.11-slim
+FROM python:3.10.11
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -37,4 +37,4 @@ COPY . /app
 EXPOSE 8000
 
 # Run the Flask app using gunicorn; bind to the PORT environment variable when provided
-ENTRYPOINT ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8000} --workers 2"]
+CMD ["python", "Final_data/DataLab/main.py"]
